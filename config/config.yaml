@@ -7,6 +7,7 @@
 models:
   - example-model
   - ampeppy
+  - amplify
 
 # --- Datasets ---
 # Each dataset is a FASTA file that models run inference on.
