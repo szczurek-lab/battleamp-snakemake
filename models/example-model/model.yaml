@@ -1,0 +1,10 @@
+name: example-model
+version: 1.0.0
+type: classifier
+framework: random-baseline
+length_min: null
+length_max: null
+gpu_required: false
+conda_env: null  # uses pipeline env
+
+# No variants -- single model name is used

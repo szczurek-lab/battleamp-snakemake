@@ -1,0 +1,58 @@
+# AMP Benchmark Pipeline Configuration
+# ======================================
+#
+# This config wires models to datasets and defines evaluation tasks.
+# Edit this file to add your own models and datasets.
+#
+# For details on adding models:  docs/adding_a_model.md
+# For details on adding datasets: docs/adding_a_dataset.md
+
+# Directories (relative to repo root)
+models_dir: models/
+datasets_dir: datasets/
+output_dir: results/
+
+# Standardized column name for sequences in all TSV outputs
+sequence_column: sequence
+
+# Models to benchmark (directory names under models_dir)
+models:
+  - example-model
+  # To add real models, clone them into models/ and uncomment:
+  # - ampeppy
+  # - amplify
+  # - ampscanner
+  # - ampredmfa
+  # - hydramp-amp-classifier
+  # - hydramp-mic-classifier
+  # - mole-amp
+  # - sensexamp
+  # - mbc-attention
+  # - deep-amp
+  # - ampredictor
+  # - apex
+
+# Datasets (directory names under datasets_dir)
+datasets:
+  - example-dataset
+
+# Task definitions
+# Each task pairs a dataset with an evaluation type and specifies metrics.
+tasks:
+  example_classification:
+    dataset: example-dataset
+    type: classification
+    label_column: label
+    positive_label: AMP
+    metrics:
+      - accuracy
+      - mcc
+      - f1
+      - fpr
+      - auroc
+      - auprc
+    models: all  # "all" = every classifier variant; or list specific variants
+    description: "Example: AMP vs non-AMP classification on 20 sequences"
+
+# Resource hints (used with snakemake --resources gpu=N)
+# gpu_models run sequentially when GPU is limited

@@ -1,0 +1,7 @@
+name: example-dataset
+description: >
+  Small example dataset with 10 known AMPs and 10 non-AMP protein fragments.
+  For testing the pipeline only -- not a real benchmark.
+n_sequences: 20
+label_column: label
+positive_label: AMP

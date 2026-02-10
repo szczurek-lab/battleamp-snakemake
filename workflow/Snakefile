@@ -1,0 +1,150 @@
+"""
+AMP Benchmark Pipeline (battleamp-snakemake)
+=============================================
+A general-purpose Snakemake pipeline for benchmarking antimicrobial peptide
+prediction models. Model-agnostic, dataset-agnostic.
+
+Usage:
+    snakemake --use-conda --cores 4
+    snakemake --use-conda --cores 4 --resources gpu=1
+"""
+
+import yaml
+from pathlib import Path
+
+configfile: "config/config.yaml"
+
+
+# ---------------------------------------------------------------------------
+# Load model metadata
+# ---------------------------------------------------------------------------
+
+REPO_ROOT = Path(workflow.basedir).parent  # one level up from workflow/
+MODELS_DIR = (REPO_ROOT / config["models_dir"]).resolve()
+DATASETS_DIR = (REPO_ROOT / config["datasets_dir"]).resolve()
+OUTPUT_DIR = Path(config["output_dir"])
+PIPELINE_ENV = str((Path(workflow.basedir) / "envs" / "pipeline.yaml").resolve())
+SEQ_COL = config.get("sequence_column", "sequence")
+
+MODELS = {}
+for model_name in config["models"]:
+    model_yaml_path = MODELS_DIR / model_name / "model.yaml"
+    if not model_yaml_path.exists():
+        raise FileNotFoundError(
+            f"Model metadata not found: {model_yaml_path}\n"
+            f"Each model directory must contain a model.yaml file."
+        )
+    with open(model_yaml_path) as f:
+        MODELS[model_name] = yaml.safe_load(f)
+
+
+# ---------------------------------------------------------------------------
+# Resolve conda env paths per model
+# ---------------------------------------------------------------------------
+# Each model can provide an environment.yaml in its directory.
+# Snakemake's conda: directive creates and manages the env automatically
+# when the user runs with --use-conda. No manual env creation needed.
+
+MODEL_ENV_PATHS = {}
+for model_name in MODELS:
+    env_path = MODELS_DIR / model_name / "environment.yaml"
+    if env_path.exists():
+        MODEL_ENV_PATHS[model_name] = str(env_path.resolve())
+    else:
+        MODEL_ENV_PATHS[model_name] = PIPELINE_ENV
+
+
+# ---------------------------------------------------------------------------
+# Expand variants
+# ---------------------------------------------------------------------------
+# A "variant" is a single benchmark entry. Most models have one variant
+# (variant name == model name). Multi-output models (e.g. species-specific
+# regressors) produce multiple variants from one model directory.
+
+VARIANTS = {}
+for model_name, meta in MODELS.items():
+    base_info = {
+        "model": model_name,
+        "type": meta["type"],
+        "length_min": meta.get("length_min"),
+        "length_max": meta.get("length_max"),
+        "gpu": meta.get("gpu_required", False),
+        "env": MODEL_ENV_PATHS[model_name],
+    }
+    if meta.get("variants"):
+        for v in meta["variants"]:
+            VARIANTS[v["name"]] = {
+                **base_info,
+                "args": v.get("args", []),
+            }
+    else:
+        VARIANTS[model_name] = {
+            **base_info,
+            "args": [],
+        }
+
+
+# ---------------------------------------------------------------------------
+# Task definitions
+# ---------------------------------------------------------------------------
+
+TASKS = config["tasks"]
+
+
+TASK_TYPE_TO_MODEL_TYPE = {
+    "classification": "classifier",
+    "regression": "regressor",
+}
+
+
+def get_variants_for_task(task_name):
+    """Return list of variant names that participate in a given task."""
+    task = TASKS[task_name]
+    model_filter = task.get("models", "all")
+    if model_filter == "all":
+        # Match by type: classifiers for classification tasks, regressors for regression
+        expected_model_type = TASK_TYPE_TO_MODEL_TYPE.get(task["type"], task["type"])
+        return [
+            v for v, info in VARIANTS.items()
+            if info["type"] == expected_model_type
+        ]
+    return [v for v in model_filter if v in VARIANTS]
+
+
+# ---------------------------------------------------------------------------
+# Collect all expected outputs
+# ---------------------------------------------------------------------------
+
+ALL_METRICS = []
+for task_name in TASKS:
+    for variant in get_variants_for_task(task_name):
+        ALL_METRICS.append(
+            f"{OUTPUT_DIR}/evaluation/{variant}/{task_name}/metrics.json"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Include rule files
+# ---------------------------------------------------------------------------
+
+include: "rules/setup.smk"
+include: "rules/prefilter.smk"
+include: "rules/inference.smk"
+include: "rules/evaluate.smk"
+include: "rules/aggregate.smk"
+include: "rules/validate.smk"
+
+
+# ---------------------------------------------------------------------------
+# Target rules
+# ---------------------------------------------------------------------------
+
+rule all:
+    input:
+        f"{OUTPUT_DIR}/aggregated/summary.tsv",
+
+
+rule validate:
+    """Run model validation only (check hotfixes did not change outputs)."""
+    input:
+        f"{OUTPUT_DIR}/validation/validation_summary.tsv",

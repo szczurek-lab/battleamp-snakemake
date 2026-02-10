@@ -1,0 +1,13 @@
+name: ampeppy
+version: 1.0.0
+type: classifier
+framework: random-forest
+description: >
+  Re-implementation of AmPEP in Python. Random Forest with 160 trees
+  using Distribution descriptors from Global Protein Sequence Descriptors.
+paper: "https://doi.org/10.1186/s12864-019-5951-y"
+source_repo: "https://github.com/tlawrence3/amPEPpy"
+length_min: null
+length_max: null
+gpu_required: false
+validation_tolerance: 1e-4     # max allowed difference in probability scores

@@ -1,0 +1,26 @@
+# Pipeline outputs
+results/
+
+# Snakemake
+.snakemake/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Conda
+.conda/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
