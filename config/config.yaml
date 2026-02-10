@@ -1,58 +1,195 @@
-# AMP Benchmark Pipeline Configuration
-# ======================================
-#
-# This config wires models to datasets and defines evaluation tasks.
-# Edit this file to add your own models and datasets.
-#
-# For details on adding models:  docs/adding_a_model.md
-# For details on adding datasets: docs/adding_a_dataset.md
+# =============================================================================
+# BattleAMP Benchmark Configuration
+# =============================================================================
 
-# Directories (relative to repo root)
-models_dir: models/
-datasets_dir: datasets/
-output_dir: results/
-
-# Standardized column name for sequences in all TSV outputs
-sequence_column: sequence
-
-# Models to benchmark (directory names under models_dir)
+# --- Models to benchmark ---
+# Each model must have a directory under models/ with model.yaml and inference.sh
 models:
   - example-model
-  # To add real models, clone them into models/ and uncomment:
-  # - ampeppy
-  # - amplify
-  # - ampscanner
-  # - ampredmfa
-  # - hydramp-amp-classifier
-  # - hydramp-mic-classifier
-  # - mole-amp
-  # - sensexamp
-  # - mbc-attention
-  # - deep-amp
-  # - ampredictor
-  # - apex
+  - ampeppy
 
-# Datasets (directory names under datasets_dir)
+# --- Datasets ---
+# Each dataset is a FASTA file that models run inference on.
+# Models run ONCE per dataset. Multiple tasks can share the same dataset.
 datasets:
-  - example-dataset
+  example-dataset:
+    sequences: datasets/example-dataset/sequences.fasta
+  battleamp-all:
+    sequences: datasets/battleamp-all/sequences.fasta
 
-# Task definitions
-# Each task pairs a dataset with an evaluation type and specifies metrics.
+# --- Tasks ---
+# Each task defines an evaluation: which dataset's predictions to score,
+# against which labels, using which metric type.
+#
+# type: classification | regression | paired (paired is not yet implemented)
+# dataset: which dataset the task evaluates predictions from
+# labels: path to TSV with ground truth (relative to repo root)
+# model_type: classifier | regressor (which models this task applies to)
+
 tasks:
+  # --- Keep example task for testing ---
   example_classification:
-    dataset: example-dataset
     type: classification
-    label_column: label
-    positive_label: AMP
-    metrics:
-      - accuracy
-      - mcc
-      - f1
-      - fpr
-      - auroc
-      - auprc
-    models: all  # "all" = every classifier variant; or list specific variants
-    description: "Example: AMP vs non-AMP classification on 20 sequences"
+    dataset: example-dataset
+    labels: datasets/example-dataset/labels.tsv
+    model_type: classifier
 
-# Resource hints (used with snakemake --resources gpu=N)
-# gpu_models run sequentially when GPU is limited
+  # === A1: AMP identification ===
+  amp:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/amp/labels.tsv
+    model_type: classifier
+
+  # === A2: Broad-spectrum activity ===
+  broad_activity:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/broad_activity/labels.tsv
+    model_type: classifier
+
+  # === A3: Strain-level activity ===
+  strain_ecoli25922:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/strain_ecoli25922/labels.tsv
+    model_type: classifier
+
+  strain_saureus25923:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/strain_saureus25923/labels.tsv
+    model_type: classifier
+
+  strain_kpneumoniae700603:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/strain_kpneumoniae700603/labels.tsv
+    model_type: classifier
+
+  strain_abaumannii19606:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/strain_abaumannii19606/labels.tsv
+    model_type: classifier
+
+  strain_paeruginosa27853:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/strain_paeruginosa27853/labels.tsv
+    model_type: classifier
+
+  strain_saureus43300:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/strain_saureus43300/labels.tsv
+    model_type: classifier
+
+  strain_saureus33591:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/strain_saureus33591/labels.tsv
+    model_type: classifier
+
+  # === A4: Species-level activity ===
+  species_ecoli:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/species_ecoli/labels.tsv
+    model_type: classifier
+
+  species_saureus:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/species_saureus/labels.tsv
+    model_type: classifier
+
+  species_kpneumoniae:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/species_kpneumoniae/labels.tsv
+    model_type: classifier
+
+  species_abaumannii:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/species_abaumannii/labels.tsv
+    model_type: classifier
+
+  species_paeruginosa:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/species_paeruginosa/labels.tsv
+    model_type: classifier
+
+  # === A5: Gram-type activity ===
+  gram_plus:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/gram_plus/labels.tsv
+    model_type: classifier
+
+  gram_minus:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/gram_minus/labels.tsv
+    model_type: classifier
+
+  # === B1: High similarity ===
+  high_similarity:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/high_similarity/labels.tsv
+    model_type: classifier
+
+  # === B2: Synthetic sequence detection ===
+  synthetic_random:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/synthetic_random/labels.tsv
+    model_type: classifier
+
+  synthetic_realistic:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/synthetic_realistic/labels.tsv
+    model_type: classifier
+
+  synthetic_shuffled:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/synthetic_shuffled/labels.tsv
+    model_type: classifier
+
+  # === B3: Sequence length ===
+  short_sequences:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/short_sequences/labels.tsv
+    model_type: classifier
+
+  long_sequences:
+    type: classification
+    dataset: battleamp-all
+    labels: tasks/long_sequences/labels.tsv
+    model_type: classifier
+
+  # === C1: Paired sequences (special evaluation) ===
+  # paired_sequences:
+  #   type: paired
+  #   dataset: battleamp-all
+  #   labels: tasks/paired_sequences/labels.tsv
+  #   model_type: classifier
+
+  # === Regression tasks ===
+  regression_ecoli25922:
+    type: regression
+    dataset: battleamp-all
+    labels: tasks/regression_ecoli25922/labels.tsv
+    model_type: regressor
+
+  regression_saureus25923:
+    type: regression
+    dataset: battleamp-all
+    labels: tasks/regression_saureus25923/labels.tsv
+    model_type: regressor

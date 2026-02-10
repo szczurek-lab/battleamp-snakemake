@@ -2,6 +2,9 @@
 Rule: evaluation
 Computes metrics for each variant x task combination by comparing
 model predictions against ground truth labels.
+
+The label file is specified per-task in config.yaml (not per-dataset),
+so multiple tasks can evaluate the same inference output differently.
 """
 
 
@@ -16,9 +19,7 @@ rule evaluate_task:
             f"{OUTPUT_DIR}/inference/{wc.variant}/"
             f"{TASKS[wc.task]['dataset']}/validation_report.json"
         ),
-        labels = lambda wc: str(
-            DATASETS_DIR / TASKS[wc.task]["dataset"] / "labels.tsv"
-        ),
+        labels = lambda wc: get_task_labels(wc.task),
     output:
         metrics = f"{OUTPUT_DIR}/evaluation/{{variant}}/{{task}}/metrics.json",
     params:

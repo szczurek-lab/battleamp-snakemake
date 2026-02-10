@@ -5,8 +5,8 @@ A general-purpose Snakemake pipeline for benchmarking antimicrobial peptide
 prediction models. Model-agnostic, dataset-agnostic.
 
 Usage:
-    snakemake --use-conda --cores 4
-    snakemake --use-conda --cores 4 --resources gpu=1
+    snakemake --snakefile workflow/Snakefile --cores 4
+    snakemake --snakefile workflow/Snakefile --use-conda --cores 8 --resources gpu=1
 """
 
 import yaml
@@ -16,15 +16,19 @@ configfile: "config/config.yaml"
 
 
 # ---------------------------------------------------------------------------
-# Load model metadata
+# Paths
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(workflow.basedir).parent  # one level up from workflow/
-MODELS_DIR = (REPO_ROOT / config["models_dir"]).resolve()
-DATASETS_DIR = (REPO_ROOT / config["datasets_dir"]).resolve()
-OUTPUT_DIR = Path(config["output_dir"])
-PIPELINE_ENV = str((Path(workflow.basedir) / "envs" / "pipeline.yaml").resolve())
+MODELS_DIR = (REPO_ROOT / "models").resolve()
+DATASETS_DIR = REPO_ROOT  # dataset paths in config are relative to repo root
+OUTPUT_DIR = Path("results")
 SEQ_COL = config.get("sequence_column", "sequence")
+
+
+# ---------------------------------------------------------------------------
+# Load model metadata
+# ---------------------------------------------------------------------------
 
 MODELS = {}
 for model_name in config["models"]:
@@ -41,9 +45,6 @@ for model_name in config["models"]:
 # ---------------------------------------------------------------------------
 # Resolve conda env paths per model
 # ---------------------------------------------------------------------------
-# Each model can provide an environment.yaml in its directory.
-# Snakemake's conda: directive creates and manages the env automatically
-# when the user runs with --use-conda. No manual env creation needed.
 
 MODEL_ENV_PATHS = {}
 for model_name in MODELS:
@@ -51,15 +52,12 @@ for model_name in MODELS:
     if env_path.exists():
         MODEL_ENV_PATHS[model_name] = str(env_path.resolve())
     else:
-        MODEL_ENV_PATHS[model_name] = PIPELINE_ENV
+        MODEL_ENV_PATHS[model_name] = None  # no model-specific env
 
 
 # ---------------------------------------------------------------------------
 # Expand variants
 # ---------------------------------------------------------------------------
-# A "variant" is a single benchmark entry. Most models have one variant
-# (variant name == model name). Multi-output models (e.g. species-specific
-# regressors) produce multiple variants from one model directory.
 
 VARIANTS = {}
 for model_name, meta in MODELS.items():
@@ -85,30 +83,29 @@ for model_name, meta in MODELS.items():
 
 
 # ---------------------------------------------------------------------------
-# Task definitions
+# Dataset and task definitions
 # ---------------------------------------------------------------------------
 
+DATASETS = config.get("datasets", {})
 TASKS = config["tasks"]
 
 
-TASK_TYPE_TO_MODEL_TYPE = {
-    "classification": "classifier",
-    "regression": "regressor",
-}
-
-
 def get_variants_for_task(task_name):
-    """Return list of variant names that participate in a given task."""
+    """Return variant names that can run on this task (matched by model_type)."""
     task = TASKS[task_name]
-    model_filter = task.get("models", "all")
-    if model_filter == "all":
-        # Match by type: classifiers for classification tasks, regressors for regression
-        expected_model_type = TASK_TYPE_TO_MODEL_TYPE.get(task["type"], task["type"])
-        return [
-            v for v, info in VARIANTS.items()
-            if info["type"] == expected_model_type
-        ]
-    return [v for v in model_filter if v in VARIANTS]
+    required_type = task.get("model_type", "classifier")
+    return [v for v, info in VARIANTS.items() if info["type"] == required_type]
+
+
+def get_dataset_fasta(dataset_name):
+    """Resolve the FASTA path for a dataset."""
+    ds = DATASETS[dataset_name]
+    return str((REPO_ROOT / ds["sequences"]).resolve())
+
+
+def get_task_labels(task_name):
+    """Resolve the labels TSV path for a task."""
+    return str((REPO_ROOT / TASKS[task_name]["labels"]).resolve())
 
 
 # ---------------------------------------------------------------------------
@@ -132,7 +129,6 @@ include: "rules/prefilter.smk"
 include: "rules/inference.smk"
 include: "rules/evaluate.smk"
 include: "rules/aggregate.smk"
-include: "rules/validate.smk"
 
 
 # ---------------------------------------------------------------------------
@@ -142,9 +138,3 @@ include: "rules/validate.smk"
 rule all:
     input:
         f"{OUTPUT_DIR}/aggregated/summary.tsv",
-
-
-rule validate:
-    """Run model validation only (check hotfixes did not change outputs)."""
-    input:
-        f"{OUTPUT_DIR}/validation/validation_summary.tsv",
