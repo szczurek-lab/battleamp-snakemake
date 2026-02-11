@@ -25,6 +25,7 @@ rule evaluate_task:
     params:
         task_config = lambda wc: TASKS[wc.task],
         sequence_column = SEQ_COL,
+        benchmark_unit = config.get("benchmark_unit", "ug/ml"),
     log:
         f"{OUTPUT_DIR}/logs/evaluation/{{variant}}/{{task}}.log",
     script:

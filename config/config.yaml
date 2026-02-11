@@ -12,10 +12,19 @@ models:
   - ampredmfa
   - hydramp-amp-classifier
   - hydramp-mic-classifier
+  - apex
 
 # --- Datasets ---
 # Each dataset is a FASTA file that models run inference on.
 # Models run ONCE per dataset. Multiple tasks can share the same dataset.
+
+# --- Benchmark unit for MIC regression ---
+# All MIC values (predictions and labels) are converted to this unit before
+# computing regression metrics.  Per-peptide molecular weight is computed
+# from the amino acid sequence for accurate uM <-> ug/ml conversion.
+# Options: "ug/ml" or "uM"
+benchmark_unit: "ug/ml"
+
 datasets:
   example-dataset:
     sequences: datasets/example-dataset/sequences.fasta

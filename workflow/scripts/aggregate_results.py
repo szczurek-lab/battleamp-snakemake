@@ -59,10 +59,14 @@ def main(snakemake):
 
     # Sort by task, then variant
     df = df.sort_values(["task", "variant"]).reset_index(drop=True)
+
+    # Add coverage: fraction of task sequences the model could evaluate.
+    # task_size = max n_matched across all models for that task (at least
+    # one model with no length constraints covers every sequence).
     task_size = df.groupby("task")["n_matched"].transform("max")
-    df.insert(df.columns.get_loc("n_matched") + 1, "task_size", task_size.astype(int))
-    df.insert(df.columns.get_loc("task_size") + 1, "coverage",
-              df["n_matched"] / df["task_size"])
+    col_pos = df.columns.get_loc("n_matched") + 1
+    df.insert(col_pos, "task_size", task_size.astype(int))
+    df.insert(col_pos + 1, "coverage", df["n_matched"] / df["task_size"])
 
     # Write full summary
     df.to_csv(summary_path, sep="\t", index=False)

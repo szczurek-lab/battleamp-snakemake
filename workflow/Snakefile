@@ -9,6 +9,7 @@ Usage:
     snakemake --snakefile workflow/Snakefile --use-conda --cores 8 --resources gpu=1
 """
 
+import re
 import yaml
 from pathlib import Path
 
@@ -58,8 +59,20 @@ for model_name in MODELS:
 # ---------------------------------------------------------------------------
 # Expand variants
 # ---------------------------------------------------------------------------
+#
+# Models come in two flavours:
+#
+# 1. Standard models (possibly with variants that pass different args to
+#    inference.sh). Each variant triggers a separate inference run.
+#
+# 2. Multi-output models (multioutput: true in model.yaml). A single
+#    inference run produces prediction files for ALL variants at once.
+#    Each variant declares a predictions_file that names its output.
+#    This avoids running expensive ensembles multiple times.
 
 VARIANTS = {}
+MULTIOUTPUT_MODELS = {}   # model_name -> {"primary": first_variant, "variants": {name: predictions_file}}
+
 for model_name, meta in MODELS.items():
     base_info = {
         "model": model_name,
@@ -69,17 +82,60 @@ for model_name, meta in MODELS.items():
         "gpu": meta.get("gpu_required", False),
         "env": MODEL_ENV_PATHS[model_name],
     }
-    if meta.get("variants"):
+
+    if meta.get("multioutput") and meta.get("variants"):
+        # Multi-output model: one inference run, many prediction files.
+        variant_defs = meta["variants"]
+        primary_variant = variant_defs[0]["name"]
+        MULTIOUTPUT_MODELS[model_name] = {
+            "primary": primary_variant,
+            "variants": {
+                v["name"]: v.get("predictions_file", "predictions.tsv")
+                for v in variant_defs
+            },
+        }
+        for v in variant_defs:
+            VARIANTS[v["name"]] = {
+                **base_info,
+                "args": v.get("args", []),
+                "multioutput": True,
+                "predictions_file": v.get("predictions_file", "predictions.tsv"),
+            }
+    elif meta.get("variants"):
+        # Standard multi-variant model (separate inference per variant).
         for v in meta["variants"]:
             VARIANTS[v["name"]] = {
                 **base_info,
                 "args": v.get("args", []),
             }
     else:
+        # Single-variant model (variant name == model name).
         VARIANTS[model_name] = {
             **base_info,
             "args": [],
         }
+
+
+# ---------------------------------------------------------------------------
+# Wildcard helpers for multioutput vs standard inference rules
+# ---------------------------------------------------------------------------
+
+MULTIOUTPUT_VARIANT_NAMES = sorted(
+    v for v, info in VARIANTS.items() if info.get("multioutput")
+)
+STANDARD_VARIANT_NAMES = sorted(
+    v for v, info in VARIANTS.items() if not info.get("multioutput")
+)
+
+def _names_to_re(names):
+    """Build a regex alternation that matches exactly the given names."""
+    if not names:
+        return r"(?!x)x"  # never-match pattern
+    return "|".join(re.escape(n) for n in names)
+
+MULTIOUTPUT_VARIANT_RE = _names_to_re(MULTIOUTPUT_VARIANT_NAMES)
+STANDARD_VARIANT_RE = _names_to_re(STANDARD_VARIANT_NAMES)
+MULTIOUTPUT_MODEL_RE = _names_to_re(sorted(MULTIOUTPUT_MODELS.keys()))
 
 
 # ---------------------------------------------------------------------------

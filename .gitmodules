@@ -16,3 +16,6 @@
 [submodule "models/hydramp-mic-classifier"]
 	path = models/hydramp-mic-classifier
 	url = git@github.com:szczurek-lab/BattleAMP-hydramp-mic-classifier.git
+[submodule "models/apex"]
+	path = models/apex
+	url = git@github.com:szczurek-lab/BattleAMP-apex.git

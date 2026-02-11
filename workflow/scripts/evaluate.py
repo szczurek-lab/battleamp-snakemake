@@ -178,20 +178,71 @@ def _safe_rmsle(y_true, y_pred):
 
 
 # ---------------------------------------------------------------------------
-# MIC unit conversion
+# MIC unit conversion (per-peptide molecular weight)
 # ---------------------------------------------------------------------------
 
-DEFAULT_AMP_MW = 2500.0  # Da
+# Average molecular weights of the 20 standard amino acids (Da).
+AA_MW = {
+    "A":  71.03711, "R": 156.10111, "N": 114.04293, "D": 115.02694,
+    "C": 103.00919, "E": 129.04259, "Q": 128.05858, "G":  57.02146,
+    "H": 137.05891, "I": 113.08406, "L": 113.08406, "K": 128.09496,
+    "M": 131.04049, "F": 147.06841, "P":  97.05276, "S":  87.03203,
+    "T": 101.04768, "W": 186.07931, "Y": 163.06333, "V":  99.06841,
+}
+
+WATER_MW = 18.01056  # Da, lost per peptide bond formation + terminal groups
 
 
-def convert_mic_um_to_ugml(mic_um, mw=None):
-    mw = mw if mw is not None else DEFAULT_AMP_MW
+def peptide_mw(sequence):
+    """Compute molecular weight (Da) from amino acid sequence.
+
+    Sum of residue weights plus one water molecule (N-terminal H and
+    C-terminal OH).  Non-standard residues are skipped with a warning.
+    """
+    mw = WATER_MW
+    for aa in sequence.upper():
+        mw += AA_MW.get(aa, 0.0)
+    return mw
+
+
+def convert_mic_um_to_ugml(mic_um, mw):
+    """uM -> ug/mL: C[ug/mL] = C[uM] * MW[Da] / 1000"""
     return mic_um * mw / 1000.0
 
 
-def convert_mic_ugml_to_um(mic_ugml, mw=None):
-    mw = mw if mw is not None else DEFAULT_AMP_MW
+def convert_mic_ugml_to_um(mic_ugml, mw):
+    """ug/mL -> uM: C[uM] = C[ug/mL] * 1000 / MW[Da]"""
     return mic_ugml * 1000.0 / mw
+
+
+def harmonize_mic_units(values, units, sequences, target_unit):
+    """Convert MIC values to the target unit using per-peptide MW.
+
+    Parameters
+    ----------
+    values : np.ndarray       MIC values (float)
+    units : np.ndarray        Unit strings per row ("uM" or "ug/ml")
+    sequences : np.ndarray    Amino acid sequences (for MW calculation)
+    target_unit : str         "uM" or "ug/ml"
+
+    Returns
+    -------
+    np.ndarray  MIC values in target_unit
+    int         Number of conversions performed
+    """
+    out = values.copy()
+    n_converted = 0
+    for i in range(len(out)):
+        src = units[i]
+        if src == target_unit:
+            continue
+        mw = peptide_mw(sequences[i])
+        if src == "uM" and target_unit == "ug/ml":
+            out[i] = convert_mic_um_to_ugml(out[i], mw)
+        elif src == "ug/ml" and target_unit == "uM":
+            out[i] = convert_mic_ugml_to_um(out[i], mw)
+        n_converted += 1
+    return out, n_converted
 
 
 # ---------------------------------------------------------------------------
@@ -274,25 +325,35 @@ def main(snakemake):
         if not requested_metrics:
             requested_metrics = DEFAULT_REGRESSION_METRICS
 
-        # Get predicted MIC
-        y_pred = pd.to_numeric(merged["MIC"], errors="coerce").values
+        benchmark_unit = snakemake.params.benchmark_unit
+        sequences = merged[seq_col].values
 
-        # Handle unit conversion
-        if "MIC_unit_pred" in merged.columns:
-            target_unit = task_config.get("target_unit", "ug/ml")
-            pred_units = merged["MIC_unit_pred"].values
-            for i in range(len(y_pred)):
-                if pred_units[i] == "uM" and target_unit == "ug/ml":
-                    y_pred[i] = convert_mic_um_to_ugml(y_pred[i])
-                elif pred_units[i] == "ug/ml" and target_unit == "uM":
-                    y_pred[i] = convert_mic_ugml_to_um(y_pred[i])
+        # --- Predicted MIC ---
+        mic_pred_col = "MIC_pred" if "MIC_pred" in merged.columns else "MIC"
+        y_pred = pd.to_numeric(merged[mic_pred_col], errors="coerce").values
 
-        # Ground truth MIC
+        pred_unit_col = (
+            "MIC_unit_pred" if "MIC_unit_pred" in merged.columns
+            else "MIC_unit" if "MIC_unit" in merged.columns
+            else None
+        )
+        if pred_unit_col:
+            y_pred, n_pred_conv = harmonize_mic_units(
+                y_pred, merged[pred_unit_col].values, sequences, benchmark_unit
+            )
+        else:
+            n_pred_conv = 0
+
+        # --- Ground truth MIC ---
         mic_col = task_config.get("mic_column", "MIC")
         if mic_col in merged.columns:
             y_true = pd.to_numeric(merged[mic_col], errors="coerce").values
+            true_unit_col = "MIC_unit" if "MIC_unit" in merged.columns else None
         elif "MIC_label" in merged.columns:
             y_true = pd.to_numeric(merged["MIC_label"], errors="coerce").values
+            true_unit_col = (
+                "MIC_unit_label" if "MIC_unit_label" in merged.columns else None
+            )
         else:
             report["error"] = f"No MIC column found in merged data"
             report["metrics"] = {}
@@ -300,10 +361,21 @@ def main(snakemake):
                 json.dump(report, f, indent=2)
             return
 
+        if true_unit_col:
+            y_true, n_true_conv = harmonize_mic_units(
+                y_true, merged[true_unit_col].values, sequences, benchmark_unit
+            )
+        else:
+            n_true_conv = 0
+
         # Drop NaN pairs
         valid = ~(np.isnan(y_true) | np.isnan(y_pred))
         y_true = y_true[valid]
         y_pred = y_pred[valid]
+
+        report["benchmark_unit"] = benchmark_unit
+        report["n_pred_converted"] = n_pred_conv
+        report["n_label_converted"] = n_true_conv
 
         report["metrics"] = compute_regression_metrics(
             y_true, y_pred, requested_metrics
