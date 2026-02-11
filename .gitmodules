@@ -19,3 +19,6 @@
 [submodule "models/apex"]
 	path = models/apex
 	url = git@github.com:szczurek-lab/BattleAMP-apex.git
+[submodule "models/mole-amp"]
+	path = models/mole-amp
+	url = git@github.com:szczurek-lab/BattleAMP-mole-amp.git
