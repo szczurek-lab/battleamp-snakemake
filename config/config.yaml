@@ -9,6 +9,7 @@ models:
   - ampeppy
   - amplify
   - ampscanner
+  - ampredmfa
 
 # --- Datasets ---
 # Each dataset is a FASTA file that models run inference on.

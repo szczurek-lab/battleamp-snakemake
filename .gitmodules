@@ -7,3 +7,6 @@
 [submodule "models/ampscanner"]
 	path = models/ampscanner
 	url = git@github.com:szczurek-lab/BattleAMP-ampscanner.git
+[submodule "models/ampredmfa"]
+	path = models/ampredmfa
+	url = git@github.com:szczurek-lab/BattleAMP-ampredmfa.git
