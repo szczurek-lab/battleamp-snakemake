@@ -14,6 +14,7 @@ models:
   - hydramp-mic-classifier
   - apex
   - mole-amp
+  - mbc-attention
 
 # --- Datasets ---
 # Each dataset is a FASTA file that models run inference on.
