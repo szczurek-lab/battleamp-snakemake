@@ -10,3 +10,9 @@
 [submodule "models/ampredmfa"]
 	path = models/ampredmfa
 	url = git@github.com:szczurek-lab/BattleAMP-ampredmfa.git
+[submodule "models/hydramp-amp-classifier"]
+	path = models/hydramp-amp-classifier
+	url = git@github.com:szczurek-lab/BattleAMP-hydramp-amp-classifier.git
+[submodule "models/hydramp-mic-classifier"]
+	path = models/hydramp-mic-classifier
+	url = git@github.com:szczurek-lab/BattleAMP-hydramp-mic-classifier.git
