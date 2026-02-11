@@ -4,3 +4,6 @@
 [submodule "models/amplify"]
 	path = models/amplify
 	url = git@github.com:szczurek-lab/BattleAMP-amplify.git
+[submodule "models/ampscanner"]
+	path = models/ampscanner
+	url = git@github.com:szczurek-lab/BattleAMP-ampscanner.git
