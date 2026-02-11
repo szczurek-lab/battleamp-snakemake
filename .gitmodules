@@ -22,3 +22,6 @@
 [submodule "models/mole-amp"]
 	path = models/mole-amp
 	url = git@github.com:szczurek-lab/BattleAMP-mole-amp.git
+[submodule "models/mbc-attention"]
+	path = models/mbc-attention
+	url = git@github.com:szczurek-lab/BattleAMP-mbc-attention.git
