@@ -59,6 +59,10 @@ def main(snakemake):
 
     # Sort by task, then variant
     df = df.sort_values(["task", "variant"]).reset_index(drop=True)
+    task_size = df.groupby("task")["n_matched"].transform("max")
+    df.insert(df.columns.get_loc("n_matched") + 1, "task_size", task_size.astype(int))
+    df.insert(df.columns.get_loc("task_size") + 1, "coverage",
+              df["n_matched"] / df["task_size"])
 
     # Write full summary
     df.to_csv(summary_path, sep="\t", index=False)
