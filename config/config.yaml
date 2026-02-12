@@ -15,6 +15,7 @@ models:
   - apex
   - mole-amp
   - mbc-attention
+  - sensexamp
 
 # --- Datasets ---
 # Each dataset is a FASTA file that models run inference on.
@@ -25,7 +26,17 @@ models:
 # computing regression metrics.  Per-peptide molecular weight is computed
 # from the amino acid sequence for accurate uM <-> ug/ml conversion.
 # Options: "ug/ml" or "uM"
+
 benchmark_unit: "ug/ml"
+activity_thresholds:
+  active: 32
+  inactive: 128
+  unit: "ug/ml"
+
+mic_clamp:
+  min: 0.25
+  max: 512
+  unit: "ug/ml"
 
 datasets:
   example-dataset:
@@ -48,147 +59,191 @@ tasks:
     type: classification
     dataset: example-dataset
     labels: datasets/example-dataset/labels.tsv
-    model_type: classifier
-
+    model_type:
+      - classifier
+      - regressor
   # === A1: AMP identification ===
   amp:
     type: classification
     dataset: battleamp-all
     labels: tasks/amp/labels.tsv
-    model_type: classifier
-
+    model_type:
+      - classifier
+      - regressor
   # === A2: Broad-spectrum activity ===
   broad_activity:
     type: classification
     dataset: battleamp-all
     labels: tasks/broad_activity/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   # === A3: Strain-level activity ===
   strain_ecoli25922:
     type: classification
     dataset: battleamp-all
     labels: tasks/strain_ecoli25922/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   strain_saureus25923:
     type: classification
     dataset: battleamp-all
     labels: tasks/strain_saureus25923/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   strain_kpneumoniae700603:
     type: classification
     dataset: battleamp-all
     labels: tasks/strain_kpneumoniae700603/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   strain_abaumannii19606:
     type: classification
     dataset: battleamp-all
     labels: tasks/strain_abaumannii19606/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   strain_paeruginosa27853:
     type: classification
     dataset: battleamp-all
     labels: tasks/strain_paeruginosa27853/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   strain_saureus43300:
     type: classification
     dataset: battleamp-all
     labels: tasks/strain_saureus43300/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   strain_saureus33591:
     type: classification
     dataset: battleamp-all
     labels: tasks/strain_saureus33591/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   # === A4: Species-level activity ===
   species_ecoli:
     type: classification
     dataset: battleamp-all
     labels: tasks/species_ecoli/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   species_saureus:
     type: classification
     dataset: battleamp-all
     labels: tasks/species_saureus/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   species_kpneumoniae:
     type: classification
     dataset: battleamp-all
     labels: tasks/species_kpneumoniae/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   species_abaumannii:
     type: classification
     dataset: battleamp-all
     labels: tasks/species_abaumannii/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   species_paeruginosa:
     type: classification
     dataset: battleamp-all
     labels: tasks/species_paeruginosa/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   # === A5: Gram-type activity ===
   gram_plus:
     type: classification
     dataset: battleamp-all
     labels: tasks/gram_plus/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   gram_minus:
     type: classification
     dataset: battleamp-all
     labels: tasks/gram_minus/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   # === B1: High similarity ===
   high_similarity:
     type: classification
     dataset: battleamp-all
     labels: tasks/high_similarity/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   # === B2: Synthetic sequence detection ===
   synthetic_random:
     type: classification
     dataset: battleamp-all
     labels: tasks/synthetic_random/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   synthetic_realistic:
     type: classification
     dataset: battleamp-all
     labels: tasks/synthetic_realistic/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   synthetic_shuffled:
     type: classification
     dataset: battleamp-all
     labels: tasks/synthetic_shuffled/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   # === B3: Sequence length ===
   short_sequences:
     type: classification
     dataset: battleamp-all
     labels: tasks/short_sequences/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   long_sequences:
     type: classification
     dataset: battleamp-all
     labels: tasks/long_sequences/labels.tsv
-    model_type: classifier
+    model_type:
+      - classifier
+      - regressor
 
   # === C1: Paired sequences (special evaluation) ===
   # paired_sequences:

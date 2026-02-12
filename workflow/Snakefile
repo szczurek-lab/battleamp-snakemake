@@ -97,6 +97,7 @@ for model_name, meta in MODELS.items():
         for v in variant_defs:
             VARIANTS[v["name"]] = {
                 **base_info,
+                "type": v.get("type", base_info["type"]),  # per-variant override
                 "args": v.get("args", []),
                 "multioutput": True,
                 "predictions_file": v.get("predictions_file", "predictions.tsv"),
@@ -147,10 +148,18 @@ TASKS = config["tasks"]
 
 
 def get_variants_for_task(task_name):
-    """Return variant names that can run on this task (matched by model_type)."""
+    """Return variant names that can run on this task."""
     task = TASKS[task_name]
-    required_type = task.get("model_type", "classifier")
-    return [v for v, info in VARIANTS.items() if info["type"] == required_type]
+    required_types = task.get("model_type", None)
+
+    if required_types is None:
+        return list(VARIANTS.keys())
+
+    if isinstance(required_types, str):
+        required_types = [required_types]
+
+    return [v for v, info in VARIANTS.items()
+            if info["type"] in required_types]
 
 
 def get_dataset_fasta(dataset_name):

@@ -25,3 +25,6 @@
 [submodule "models/mbc-attention"]
 	path = models/mbc-attention
 	url = git@github.com:szczurek-lab/BattleAMP-mbc-attention.git
+[submodule "models/sensexamp"]
+	path = models/sensexamp
+	url = git@github.com:szczurek-lab/BattleAMP-senseXAMP.git
