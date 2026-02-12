@@ -28,3 +28,6 @@
 [submodule "models/sensexamp"]
 	path = models/sensexamp
 	url = git@github.com:szczurek-lab/BattleAMP-senseXAMP.git
+[submodule "models/ampredictor"]
+	path = models/ampredictor
+	url = git@github.com:szczurek-lab/BattleAMP-ampredictor.git
