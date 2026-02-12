@@ -1,0 +1,157 @@
+# Model registry for battleamp-snakemake.
+#
+# This file is the single source of truth for all integrated models and their
+# variants. The README model table is generated from this file. When you add or
+# update a model, edit this file and run:
+#
+#   python scripts/generate_model_table.py
+#
+# This will update the table in README.md in place.
+#
+# Fields:
+#   name          - display name of the model (matches the directory under models/)
+#   type          - classifier | regressor
+#   framework     - short description of the architecture
+#   min_length    - minimum accepted sequence length (null = no lower bound)
+#   max_length    - maximum accepted sequence length (null = no upper bound)
+#   gpu_required  - whether the model needs a GPU
+#   variants      - list of benchmark sub-models (empty list if the model has
+#                   only one variant identical to the model name)
+#   reference     - short citation or URL for the original publication
+
+models:
+
+  # ---- Classifiers ----
+
+  - name: AMPscannerv2
+    type: classifier
+    framework: CNN, LSTM
+    min_length: 10
+    max_length: 200
+    gpu_required: true
+    variants: []
+    reference: "Veltri et al., 2018"
+
+  - name: AmPEPpy
+    type: classifier
+    framework: RF
+    min_length: null
+    max_length: null
+    gpu_required: false
+    variants: []
+    reference: "Bhadra et al., 2018"
+
+  - name: AMPlify
+    type: classifier
+    framework: LSTM, ATT
+    min_length: 1
+    max_length: 199
+    gpu_required: true
+    variants: []
+    reference: "Li et al., 2022"
+
+  - name: AMPred-MFA
+    type: classifier
+    framework: LSTM, CNN, ATT
+    min_length: 3
+    max_length: null
+    gpu_required: true
+    variants: []
+    reference: "Pang et al., 2023"
+
+  - name: HydrAMP
+    type: classifier
+    framework: LSTM
+    min_length: 1
+    max_length: 25
+    gpu_required: true
+    variants:
+      - HydrAMP-AMP
+      - HydrAMP-MIC
+    reference: "Szymczak et al., 2023"
+
+  - name: MolE
+    type: classifier
+    framework: XGBoost
+    min_length: null
+    max_length: null
+    gpu_required: false
+    variants:
+      - MolE-max
+    reference: "Borisek et al., 2024"
+
+  - name: sAMP-VGG16
+    type: classifier
+    framework: CNN
+    min_length: null
+    max_length: null
+    gpu_required: true
+    variants: []
+    reference: "Lin et al., 2021"
+
+  - name: SenseXAMP
+    type: classifier
+    framework: ESM, ATT
+    min_length: 6
+    max_length: 25
+    gpu_required: true
+    variants:
+      - SenseXAMP-classifier
+    reference: "Olayo-Alarcon et al., 2024"
+
+  - name: AMPredictor
+    type: classifier
+    framework: GCN, ESM
+    min_length: 1
+    max_length: 65
+    gpu_required: true
+    variants: []
+    reference: "Zhao et al., 2023"
+
+  # ---- Regressors ----
+
+  - name: APEX
+    type: regressor
+    framework: ATT, RNN
+    min_length: 1
+    max_length: 52
+    gpu_required: true
+    variants:
+      - APEX-Ecoli
+      - APEX-Saureus
+      - APEX-Kpneumoniae
+      - APEX-min
+    reference: "Yan et al., 2022"
+
+  - name: Deep-AMP
+    type: regressor
+    framework: CNN, LSTM
+    min_length: 1
+    max_length: 49
+    gpu_required: true
+    variants:
+      - Deep-AMP-CNN-Gram+
+      - Deep-AMP-CNN-Gram-
+      - Deep-AMP-LSTM-Gram+
+      - Deep-AMP-LSTM-Gram-
+    reference: "Yan et al., 2023"
+
+  - name: MBC-Attention
+    type: regressor
+    framework: CNN, ATT
+    min_length: 5
+    max_length: 60
+    gpu_required: true
+    variants: []
+    reference: "Yan et al., 2022"
+
+  - name: SenseXAMP
+    type: regressor
+    framework: ESM, ATT
+    min_length: 6
+    max_length: 25
+    gpu_required: true
+    variants:
+      - SenseXAMP-Saureus
+      - SenseXAMP-Ecoli
+    reference: "Olayo-Alarcon et al., 2024"
