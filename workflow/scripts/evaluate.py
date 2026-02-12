@@ -54,20 +54,25 @@ from scipy.stats import spearmanr
 
 
 # ---------------------------------------------------------------------------
-# Default metrics (matching original BattleAMP benchmark)
+# Default metrics
 # ---------------------------------------------------------------------------
 
 DEFAULT_CLASSIFICATION_METRICS = [
-    "accuracy", "fpr", "tpr", "tnr", "informedness", "mcc",
-    "precision", "recall", "f1", "pos_preds",
+    "mcc", "f1", "precision", "fpr", "tpr", "tnr",
     "auroc", "auprc",
+    "precision_at_k",
+    "pauroc_01", "pauroc_001",
 ]
 
 DEFAULT_REGRESSION_METRICS = [
-    "r2", "r2_log2",
-    "mse", "rmse", "msle", "rmsle", "msl2e", "rmsl2e",
+    "r2_log2",
+    "msl2e", "rmsl2e",
     "spearman",
 ]
+
+# Default k for precision@k.  Can be overridden per task via
+# task_config["precision_at_k"]["k"].
+DEFAULT_PRECISION_AT_K = 100
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +80,30 @@ DEFAULT_REGRESSION_METRICS = [
 # ---------------------------------------------------------------------------
 
 
-def compute_classification_metrics(y_true, y_pred, y_prob, requested_metrics):
+def compute_classification_metrics(
+    y_true, y_pred, y_prob, requested_metrics, task_config=None,
+):
+    """Compute requested classification metrics.
+
+    Parameters
+    ----------
+    y_true : np.ndarray (int)       Ground-truth binary labels (0/1).
+    y_pred : np.ndarray (int)       Predicted binary labels (0/1).
+    y_prob : np.ndarray or None     Continuous scores for ranking.
+        For classifiers this is the predicted probability of the positive
+        class.  For regressors evaluated on a classification task this is
+        -MIC (lower MIC = higher score).
+    requested_metrics : list[str]   Which metrics to compute.
+    task_config : dict or None      Full task configuration.  Used to read
+        per-task overrides such as ``precision_at_k.k``.
+
+    Returns
+    -------
+    dict  Metric name -> value (or None if the metric could not be computed).
+    """
+    if task_config is None:
+        task_config = {}
+
     results = {}
     n = len(y_true)
 
@@ -91,12 +119,16 @@ def compute_classification_metrics(y_true, y_pred, y_prob, requested_metrics):
     def safe_div(num, denom):
         return float(num) / denom if denom > 0 else 0.0
 
+    # Read the k value for precision@k from the task config, falling back
+    # to the module-level default.
+    pak_config = task_config.get("precision_at_k", {})
+    k = pak_config.get("k", DEFAULT_PRECISION_AT_K)
+
     metric_funcs = {
         "accuracy": lambda: accuracy_score(y_true, y_pred),
         "mcc": lambda: matthews_corrcoef(y_true, y_pred),
         "f1": lambda: f1_score(y_true, y_pred, zero_division=0),
         "precision": lambda: safe_div(tp, tp + fp),
-        "recall": lambda: safe_div(tp, tp + fn),
         "fpr": lambda: safe_div(fp, fp + tn),
         "tpr": lambda: safe_div(tp, tp + fn),
         "tnr": lambda: safe_div(tn, tn + fp),
@@ -104,6 +136,9 @@ def compute_classification_metrics(y_true, y_pred, y_prob, requested_metrics):
         "pos_preds": lambda: safe_div(tp + fp, tp + tn + fp + fn),
         "auroc": lambda: _safe_auroc(y_true, y_prob),
         "auprc": lambda: _safe_auprc(y_true, y_prob),
+        "precision_at_k": lambda: _precision_at_k(y_true, y_prob, k),
+        "pauroc_01": lambda: _safe_pauroc(y_true, y_prob, max_fpr=0.1),
+        "pauroc_001": lambda: _safe_pauroc(y_true, y_prob, max_fpr=0.01),
     }
 
     for name in requested_metrics:
@@ -116,6 +151,11 @@ def compute_classification_metrics(y_true, y_pred, y_prob, requested_metrics):
         else:
             results[name] = None
 
+    # If precision_at_k was computed, record the k that was used so it is
+    # unambiguous in the output JSON.
+    if "precision_at_k" in requested_metrics:
+        results["precision_at_k_k"] = k
+
     results["n_samples"] = n
     results["n_positive"] = int(y_true.sum())
     results["n_negative"] = int(n - y_true.sum())
@@ -125,7 +165,13 @@ def compute_classification_metrics(y_true, y_pred, y_prob, requested_metrics):
     return results
 
 
+# ---------------------------------------------------------------------------
+# Helpers for score-based classification metrics
+# ---------------------------------------------------------------------------
+
+
 def _safe_auroc(y_true, y_prob):
+    """Full AUROC.  Returns None when undefined (single class or no scores)."""
     if len(set(y_true)) < 2:
         return None
     if y_prob is None or len(y_prob) == 0:
@@ -133,12 +179,67 @@ def _safe_auroc(y_true, y_prob):
     return float(roc_auc_score(y_true, y_prob))
 
 
+def _safe_pauroc(y_true, y_prob, max_fpr):
+    """Partial AUROC restricted to FPR <= max_fpr (McClish standardization).
+
+    sklearn's ``roc_auc_score(max_fpr=...)`` computes the area under the ROC
+    curve only up to the given false-positive rate and then applies the
+    McClish standardization so the result is in [0, 1] (0.5 = random).
+
+    Returns None when the metric is undefined.
+    """
+    if len(set(y_true)) < 2:
+        return None
+    if y_prob is None or len(y_prob) == 0:
+        return None
+    return float(roc_auc_score(y_true, y_prob, max_fpr=max_fpr))
+
+
 def _safe_auprc(y_true, y_prob):
+    """Area under the precision-recall curve.  Returns None when undefined."""
     if len(set(y_true)) < 2:
         return None
     if y_prob is None or len(y_prob) == 0:
         return None
     return float(average_precision_score(y_true, y_prob))
+
+
+def _precision_at_k(y_true, y_prob, k):
+    """Precision among the top-k highest-scoring predictions.
+
+    Sequences are ranked by ``y_prob`` in descending order (highest score
+    first).  For classifiers ``y_prob`` is the predicted probability; for
+    regressors evaluated on a classification task it is ``-MIC``, so lower
+    MIC values rank first.
+
+    If fewer than k scored samples are available, precision is computed
+    over all of them and a warning is printed.
+
+    Returns None if scores are unavailable.
+    """
+    if y_prob is None or len(y_prob) == 0:
+        return None
+    if k <= 0:
+        return None
+
+    # Only consider samples that have a finite score.
+    valid = np.isfinite(y_prob)
+    y_true_v = y_true[valid]
+    y_prob_v = y_prob[valid]
+
+    if len(y_prob_v) == 0:
+        return None
+
+    effective_k = min(k, len(y_prob_v))
+    if effective_k < k:
+        print(
+            f"Warning: precision_at_k requested k={k} but only "
+            f"{len(y_prob_v)} scored samples available; using k={effective_k}",
+            file=sys.stderr,
+        )
+
+    top_idx = np.argsort(y_prob_v)[::-1][:effective_k]
+    return float(y_true_v[top_idx].sum()) / effective_k
 
 
 # ---------------------------------------------------------------------------
@@ -604,7 +705,8 @@ def main(snakemake):
                 ).values
 
         report["metrics"] = compute_classification_metrics(
-            y_true, y_pred, y_prob, requested_metrics
+            y_true, y_pred, y_prob, requested_metrics,
+            task_config=task_config,
         )
 
     # -----------------------------------------------------------------

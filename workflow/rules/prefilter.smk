@@ -8,7 +8,7 @@ model's declared length range (length_min, length_max from model.yaml).
 rule prefilter_sequences:
     """Filter dataset FASTA to only sequences the model can handle."""
     input:
-        fasta = lambda wc: get_dataset_fasta(wc.dataset),
+        fasta = f"{OUTPUT_DIR}/cleaned/{{dataset}}/sequences.fasta",
     output:
         fasta = f"{OUTPUT_DIR}/prefiltered/{{variant}}/{{dataset}}/sequences.fasta",
         manifest = f"{OUTPUT_DIR}/prefiltered/{{variant}}/{{dataset}}/manifest.tsv",

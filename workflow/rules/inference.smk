@@ -40,6 +40,8 @@ rule run_inference:
         ),
     log:
         f"{OUTPUT_DIR}/logs/inference/{{variant}}/{{dataset}}.log",
+    benchmark:
+        f"{OUTPUT_DIR}/benchmarks/inference/{{variant}}/{{dataset}}.tsv"
     resources:
         gpu = lambda wc: 1 if VARIANTS[wc.variant]["gpu"] else 0,
     conda:
@@ -85,6 +87,8 @@ rule run_multioutput_inference:
         model_dir = lambda wc: str(MODELS_DIR / wc.model),
     log:
         f"{OUTPUT_DIR}/logs/inference/{{model}}/{{dataset}}.log",
+    benchmark:
+        f"{OUTPUT_DIR}/benchmarks/inference/{{model}}/{{dataset}}.tsv"
     resources:
         gpu = lambda wc: 1 if MODELS[wc.model].get("gpu_required", False) else 0,
     conda:

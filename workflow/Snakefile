@@ -190,6 +190,7 @@ for task_name in TASKS:
 # ---------------------------------------------------------------------------
 
 include: "rules/setup.smk"
+include: "rules/clean.smk"
 include: "rules/prefilter.smk"
 include: "rules/inference.smk"
 include: "rules/evaluate.smk"

@@ -16,6 +16,8 @@ rule model_setup:
         setup_script = lambda wc: str(MODELS_DIR / wc.model / "setup.sh"),
     log:
         f"{OUTPUT_DIR}/logs/setup/{{model}}.log",
+    benchmark:
+        f"{OUTPUT_DIR}/benchmarks/setup/{{model}}.tsv"
     conda:
         lambda wc: MODEL_ENV_PATHS[wc.model]
     shell:
