@@ -17,10 +17,7 @@ models:
   - mbc-attention
   - sensexamp
   - ampredictor
-
-# --- Datasets ---
-# Each dataset is a FASTA file that models run inference on.
-# Models run ONCE per dataset. Multiple tasks can share the same dataset.
+  - deep-amp
 
 # --- Benchmark unit for MIC regression ---
 # All MIC values (predictions and labels) are converted to this unit before
@@ -39,11 +36,17 @@ mic_clamp:
   max: 512
   unit: "ug/ml"
 
+# --- Datasets ---
+# Each dataset is a FASTA file that models run inference on.
+# Models run ONCE per dataset. Multiple tasks can share the same dataset.
+
 datasets:
   example-dataset:
     sequences: datasets/example-dataset/sequences.fasta
   battleamp-all:
     sequences: datasets/battleamp-all/sequences.fasta
+  deep-amp:
+    sequences: datasets/deep-amp/all_sequences.fasta
 
 # --- Tasks ---
 # Each task defines an evaluation: which dataset's predictions to score,
@@ -253,7 +256,7 @@ tasks:
   #   labels: tasks/paired_sequences/labels.tsv
   #   model_type: classifier
 
-  # === Regression tasks ===
+  # === Regression tasks (battleamp-all) ===
   regression_ecoli25922:
     type: regression
     dataset: battleamp-all
@@ -264,4 +267,50 @@ tasks:
     type: regression
     dataset: battleamp-all
     labels: tasks/regression_saureus25923/labels.tsv
+    model_type: regressor
+
+  # === Deep-AMP dataset tasks ===
+  # NOTE: Deep-AMP models were trained on this dataset. Their results here
+  # reflect memorization, not generalization. All other models are evaluated
+  # out-of-distribution. This asymmetry is intentional and documented.
+
+  # General activity (any gram type, MIC <= 32 uM = active)
+  deepamp_classification:
+    type: classification
+    dataset: deep-amp
+    labels: datasets/deep-amp/task_classification.tsv
+    model_type:
+      - classifier
+      - regressor
+
+  # Gram-negative activity
+  deepamp_species_gramneg:
+    type: classification
+    dataset: deep-amp
+    labels: datasets/deep-amp/task_species_gramneg.tsv
+    model_type:
+      - classifier
+      - regressor
+
+  # Gram-positive activity
+  deepamp_species_grampos:
+    type: classification
+    dataset: deep-amp
+    labels: datasets/deep-amp/task_species_grampos.tsv
+    model_type:
+      - classifier
+      - regressor
+
+  # Gram-negative MIC regression (4,619 sequences, MIC in uM)
+  deepamp_regression_gramneg:
+    type: regression
+    dataset: deep-amp
+    labels: datasets/deep-amp/task_regression_gramneg.tsv
+    model_type: regressor
+
+  # Gram-positive MIC regression (4,175 sequences, MIC in uM)
+  deepamp_regression_grampos:
+    type: regression
+    dataset: deep-amp
+    labels: datasets/deep-amp/task_regression_grampos.tsv
     model_type: regressor

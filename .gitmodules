@@ -31,3 +31,6 @@
 [submodule "models/ampredictor"]
 	path = models/ampredictor
 	url = git@github.com:szczurek-lab/BattleAMP-ampredictor.git
+[submodule "models/deep-amp"]
+	path = models/deep-amp
+	url = git@github.com:szczurek-lab/BattleAMP-deep-amp.git
