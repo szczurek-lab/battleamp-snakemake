@@ -16,6 +16,7 @@ models:
   - mole-amp
   - mbc-attention
   - sensexamp
+  - ampredictor
 
 # --- Datasets ---
 # Each dataset is a FASTA file that models run inference on.
