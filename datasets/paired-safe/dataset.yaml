@@ -1,0 +1,15 @@
+name: paired-safe
+description: >
+  Paired peptide benchmark (safe/easy version). Contains 20 pairs of
+  well-separated AMPs and clear non-AMPs. Positive peptides are known
+  antimicrobial peptides from DBAASP. Negative peptides are sourced from
+  UniProt (non-antimicrobial) and DBAASP (inactive variants). Models
+  should achieve near-perfect accuracy on this set; failures indicate
+  fundamental prediction issues.
+n_sequences: 40
+n_pairs: 20
+n_positive: 20
+n_negative: 20
+source: "DBAASP, UniProt"
+label_column: label
+positive_label: AMP

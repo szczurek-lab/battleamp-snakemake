@@ -1,0 +1,12 @@
+name: slay
+description: >
+  SLAY (Surface Localized Antimicrobial displaY) benchmark dataset.
+  Large-scale screening library with binary activity labels derived from
+  log-fold-change enrichment (lfcMLE). Class 1 = enriched (antimicrobial),
+  class 0 = not enriched.
+n_sequences: 438484
+n_positive: 7816
+n_negative: 430668
+source: "SLAY assay"
+label_column: label
+positive_label: AMP
