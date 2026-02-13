@@ -34,7 +34,7 @@ data, bring your own models, or use the ones already integrated.
 ```bash
 python3 -m venv ~/.venvs/battleamp-snakemake
 source ~/.venvs/battleamp-snakemake/bin/activate
-pip install snakemake pulp pandas scikit-learn scipy numpy pyyaml
+pip install snakemake pulp pandas scikit-learn scipy numpy pyyaml biopython
 ```
 
 On HPC clusters you may need to load a Python module first
@@ -53,6 +53,7 @@ conda activate battleamp-snakemake
 ```bash
 git clone https://github.com/szczurek-lab/battleamp-snakemake.git
 cd battleamp-snakemake
+git submodule update --init --recursive
 ```
 
 
