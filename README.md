@@ -542,6 +542,10 @@ snakemake --use-conda --cores 16 --resources gpu=2   # two GPUs
 snakemake --use-conda --cores 8  --resources gpu=0   # CPU only (GPU models will fail)
 ```
 
+If model environment creation fails with pip timeout errors on nodes with
+slow internet, set a longer timeout before running:
+
+```export PIP_DEFAULT_TIMEOUT=300```
 
 ## Model Validation
 
