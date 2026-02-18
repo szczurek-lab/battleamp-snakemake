@@ -74,17 +74,25 @@ up to date are not re-run).
 
 ### Quick start with the included example
 
+The repository ships with a small `example-dataset` (20 peptides) and an
+`example-model` for testing. To score just this dataset without running the
+full benchmark:
+
 ```bash
 source ~/.venvs/battleamp-snakemake/bin/activate   # or: conda activate battleamp-snakemake
-snakemake --snakefile workflow/Snakefile --cores 4
-cat results/aggregated/summary.tsv
+snakemake score --snakefile workflow/Snakefile --use-conda --cores 4 \
+    --config score_datasets="[example-dataset]"
 ```
 
-When running with real models, add `--use-conda` so that Snakemake creates each
-model's isolated conda environment from its `environment.yaml`:
+Predictions are written to
+`results/inference/example-model/example-dataset/predictions.tsv`.
+
+To run the full benchmark (all models, all datasets, with evaluation against
+ground-truth labels):
 
 ```bash
 snakemake --snakefile workflow/Snakefile --use-conda --cores 8 --resources gpu=1
+cat results/aggregated/summary.tsv
 ```
 
 On the first run Snakemake will build a separate conda environment for each model.
@@ -456,9 +464,19 @@ default. Comment out any you want to skip.
 
 ### 3. Run the pipeline
 
-```bash
-snakemake --snakefile workflow/Snakefile --use-conda --cores 8 --resources gpu=1
-```
+To score your peptides without running the full benchmark evaluation:
+
+    snakemake score --snakefile workflow/Snakefile --use-conda --cores 8 --resources gpu=1
+
+This runs all models on all datasets listed in the config. To restrict
+scoring to specific datasets:
+
+    snakemake score --snakefile workflow/Snakefile --use-conda --cores 8 --resources gpu=1 \
+        --config score_datasets="[my-peptides]"
+
+To run the full benchmark (with evaluation against ground-truth labels):
+
+    snakemake --snakefile workflow/Snakefile --use-conda --cores 8 --resources gpu=1
 
 ### 4. Collect your results
 
