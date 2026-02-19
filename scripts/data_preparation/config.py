@@ -1,0 +1,25 @@
+STD_AA = True
+MIN_LEN = False
+MAX_LEN = False
+CTERMINUS = [
+  None,
+  'AMD',
+  ]
+
+NTERMINUS = [
+  None,
+  ]
+
+MIN_CFU = 1e5
+MAX_CFU = 1e6
+CFU_GROUP = '1E5 - 1E6'
+ACT_MEASURE = 'MIC'
+MEDIUM = ['MHB', 'MHA', 'CAMHB', 'M7H10A', 'M7H11A', 'M7H9B']
+PH = None
+SALT = None
+
+
+NUM_RECORDS = 10
+
+MIN_MIC = 32
+MAX_MIC = 128
