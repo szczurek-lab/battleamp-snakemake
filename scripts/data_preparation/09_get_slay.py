@@ -62,6 +62,12 @@ def main(output_dir):
     csv_to_fasta(f'{output_dir}/slay_negatives.csv', f'{output_dir}/slay_negatives.fasta')
     csv_to_fasta(f'{output_dir}/slay_all.csv', f'{output_dir}/slay_all.fasta')
 
+    # Generate labels.tsv for the pipeline
+    labels_df = slay_df[['Sequence', 'class']].copy()
+    labels_df.columns = ['sequence', 'label']
+    labels_df['label'] = labels_df['label'].map({1: 'AMP', 0: 'non-AMP'})
+    labels_df.to_csv(f'{output_dir}/labels.tsv', sep='\t', index=False)
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
