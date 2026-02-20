@@ -53,6 +53,8 @@ rule run_inference:
         LOG_ABS=$(realpath -m {log})
         mkdir -p $(dirname "$OUTPUT_ABS")
         mkdir -p $(dirname "$LOG_ABS")
+        export TF_FORCE_GPU_ALLOW_GROWTH=true
+        export CUDA_VISIBLE_DEVICES=${{CUDA_VISIBLE_DEVICES:-0}}
         cd {params.model_dir} && \
         bash inference.sh \
             "$INPUT_ABS" \
@@ -95,6 +97,8 @@ rule run_multioutput_inference:
         lambda wc: MODEL_ENV_PATHS[wc.model]
     shell:
         """
+        export TF_FORCE_GPU_ALLOW_GROWTH=true
+        export CUDA_VISIBLE_DEVICES=${{CUDA_VISIBLE_DEVICES:-0}}
         INPUT_ABS=$(realpath {input.fasta})
         OUTPUT_ABS=$(realpath -m {output.tsv})
         LOG_ABS=$(realpath -m {log})

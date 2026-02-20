@@ -13,11 +13,11 @@ models:
   - hydramp-amp-classifier
   - hydramp-mic-classifier
   - apex
-  - mole-amp
+#  - mole-amp
   - mbc-attention
-  - sensexamp
-  - ampredictor
-  - deep-amp
+#  - sensexamp
+#  - ampredictor
+#  - deep-amp
 
 # --- Benchmark unit for MIC regression ---
 # All MIC values (predictions and labels) are converted to this unit before

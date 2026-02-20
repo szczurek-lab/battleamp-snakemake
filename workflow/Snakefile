@@ -184,6 +184,19 @@ for task_name in TASKS:
             f"{OUTPUT_DIR}/evaluation/{variant}/{task_name}/metrics.json"
         )
 
+# Inference-only outputs (for the "score" target).
+# By default, all datasets are scored.  Override with:
+#   --config score_datasets="[my-peptides]"
+SCORE_DATASETS = config.get("score_datasets", list(DATASETS.keys()))
+if isinstance(SCORE_DATASETS, str):
+    SCORE_DATASETS = [SCORE_DATASETS]
+
+ALL_PREDICTIONS = []
+for variant in VARIANTS:
+    for dataset_name in SCORE_DATASETS:
+        ALL_PREDICTIONS.append(
+            f"{OUTPUT_DIR}/inference/{variant}/{dataset_name}/predictions.tsv"
+        )
 
 # ---------------------------------------------------------------------------
 # Include rule files
@@ -204,3 +217,8 @@ include: "rules/aggregate.smk"
 rule all:
     input:
         f"{OUTPUT_DIR}/aggregated/summary.tsv",
+
+rule score:
+    """Run all models on the configured datasets (inference only, no evaluation)."""
+    input:
+        ALL_PREDICTIONS,
