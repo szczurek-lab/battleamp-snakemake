@@ -1,6 +1,8 @@
 # Adding a Dataset
 
-This guide explains how to add a new benchmark dataset to the pipeline.
+This guide explains how to register a new benchmark dataset in the pipeline so
+that all models run inference on it and, optionally, predictions are evaluated
+against ground-truth labels.
 
 ## Step 1: Create the dataset directory
 
@@ -8,9 +10,9 @@ This guide explains how to add a new benchmark dataset to the pipeline.
 mkdir datasets/my-dataset
 ```
 
-## Step 2: Create sequences.fasta
+## Step 2: Add sequences.fasta
 
-Standard FASTA format. Each sequence gets a unique header:
+Standard FASTA format with unique headers:
 
 ```
 >peptide_001
@@ -19,79 +21,73 @@ GIGKFLHSAKKFGKAFVGEIMNS
 KWKLFKKIEKVGQNIRDGIIKAGPAVAVVGQATQIAK
 ```
 
-## Step 3: Create labels.tsv
+## Step 3: Add labels.tsv (optional)
 
-Tab-separated file with ground truth. Must include a `sequence` column that
-matches the actual amino acid sequences in the FASTA (not the headers).
+Required only if you want evaluation metrics. The `sequence` column must
+contain the actual amino acid sequences (not the FASTA headers).
 
-### For classification tasks
+Classification:
 
 ```
 sequence	label
 GIGKFLHSAKKFGKAFVGEIMNS	AMP
 KWKLFKKIEKVGQNIRDGIIKAGPAVAVVGQATQIAK	AMP
-GIVEQCCTSICSLYQLENYCN	non-AMP
+GIVECCCTSICSLYQLENYC	non-AMP
 ```
 
-### For regression tasks
+Regression (MIC):
 
 ```
-sequence	MIC	MIC_unit	species
-GIGKFLHSAKKFGKAFVGEIMNS	4.2	ug/ml	E. coli
-KWKLFKKIEKVGQNIRDGIIKAGPAVAVVGQATQIAK	16.0	ug/ml	E. coli
+sequence	MIC	MIC_unit
+GIGKFLHSAKKFGKAFVGEIMNS	4.2	ug/ml
+KWKLFKKIEKVGQNIRDGIIKAGPAVAVVGQATQIAK	16.0	uM
 ```
 
-You can include additional columns (species, source, etc.) -- the pipeline
-will only read the columns referenced in the task definition.
+Mixed units within the same file are supported. Additional columns (species,
+source, etc.) are ignored by the pipeline.
 
-## Step 4: Create dataset.yaml (optional)
+## Step 4: Register in config/config.yaml
 
-Metadata for documentation:
+Add your dataset under `datasets:` and define any tasks you want to evaluate:
 
 ```yaml
-name: my-dataset
-description: "AMP/non-AMP test set from DBAASP v3"
-n_sequences: 5000
-source: "https://dbaasp.org"
-label_column: label
-positive_label: AMP
-```
+datasets:
+  my-dataset:
+    sequences: datasets/my-dataset/sequences.fasta
 
-## Step 5: Define a task in config.yaml
-
-Add a task that references your dataset:
-
-```yaml
 tasks:
-  my_classification_task:
-    dataset: my-dataset
+  my-classification:
     type: classification
-    label_column: label
-    positive_label: AMP
-    metrics:
-      - accuracy
-      - mcc
-      - f1
-      - auroc
-    models: all
-    description: "My custom AMP classification benchmark"
+    dataset: my-dataset
+    labels: datasets/my-dataset/labels.tsv
+    model_type: [classifier, regressor]
 
-  my_regression_task:
-    dataset: my-regression-dataset
+  my-regression:
     type: regression
-    mic_column: MIC
-    mic_unit_column: MIC_unit
-    target_unit: ug/ml
-    metrics:
-      - msle_ln
-      - spearman
-      - r2
-    models:
-      - apex-ecoli
-      - mbc-attention
-    description: "E. coli MIC regression"
+    dataset: my-dataset
+    labels: datasets/my-dataset/labels.tsv
+    model_type: regressor
 ```
 
-The `models` field controls which model variants participate. Use `all` to
-include every variant of the matching type (classifiers for classification
-tasks, regressors for regression tasks), or list specific variant names.
+`model_type` controls which model types are evaluated on the task. Setting it
+to `[classifier, regressor]` on a classification task means regressors are
+automatically cross-evaluated by binarizing their MIC predictions using the
+`activity_thresholds` in the config. Omit `labels` and skip the task
+definition entirely if you only need raw predictions with no evaluation.
+
+## Step 5: Run
+
+```bash
+# Inference only
+snakemake --profile profile/ score
+
+# Inference + evaluation
+snakemake --profile profile/
+cat results/aggregated/summary.tsv
+```
+
+To score only your new dataset without re-running existing ones:
+
+```bash
+snakemake --profile profile/ score --config score_datasets="[my-dataset]"
+```

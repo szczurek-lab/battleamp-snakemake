@@ -1,10 +1,9 @@
 # Adding a Model
 
-This guide explains how to add a new AMP prediction model to the pipeline.
+This guide explains how to integrate a new AMP prediction model into the
+pipeline.
 
 ## Step 1: Create the model directory
-
-Create a directory under `models/` with your model name:
 
 ```bash
 mkdir models/my-model
@@ -12,26 +11,23 @@ mkdir models/my-model
 
 ## Step 2: Create model.yaml
 
-This file declares your model's metadata. The pipeline reads it to determine
-how to handle the model (type, length constraints, GPU needs, variants).
+Declares the model's metadata. The pipeline reads this to pre-filter sequences
+and schedule GPU resources.
 
 ```yaml
-# models/my-model/model.yaml
-
 name: my-model
 version: 1.0.0
-type: classifier           # "classifier" or "regressor"
-framework: transformer     # free text, for documentation
-length_min: 5              # minimum sequence length in amino acids, null = no limit
-length_max: 200            # maximum sequence length, null = no limit
-gpu_required: true         # whether the model needs a GPU
-conda_env: my-model        # name of the conda env (must match environment.yaml)
+type: classifier      # "classifier" or "regressor"
+framework: transformer
+length_min: 5         # null = no lower limit
+length_max: 200       # null = no upper limit
+gpu_required: true
 ```
 
 ### Multi-variant models
 
-If your model produces multiple benchmark entries (e.g. species-specific predictions),
-declare variants:
+If your model produces multiple benchmark entries (e.g. species-specific
+variants), declare them:
 
 ```yaml
 name: my-model
@@ -41,28 +37,23 @@ framework: transformer
 length_min: null
 length_max: null
 gpu_required: true
-conda_env: my-model
 
 variants:
   - name: my-model-ecoli
-    args: ["ecoli"]           # passed to inference.sh as $3, $4, ...
+    args: ["ecoli"]       # passed to inference.sh as $3, $4, ...
   - name: my-model-saureus
     args: ["saureus"]
-  - name: my-model-min
-    args: ["min"]
 ```
 
 Each variant becomes a separate row in the benchmark results.
 
 ## Step 3: Create environment.yaml
 
-Standard conda environment specification. Snakemake creates and manages this
-environment automatically when the user runs with `--use-conda`. Nobody needs
-to manually create or activate any conda env -- Snakemake does it all.
+Standard conda environment spec. Snakemake creates and caches this
+automatically when running with `--use-conda` (enforced via the profile).
+Do not create or activate it manually.
 
 ```yaml
-# models/my-model/environment.yaml
-
 name: my-model
 channels:
   - conda-forge
@@ -79,13 +70,16 @@ dependencies:
 
 ## Step 4: Create inference.sh
 
-This is the core script. The pipeline calls it with:
+The pipeline calls this as:
 
 ```bash
 bash inference.sh <input.fasta> <output.tsv> [extra_args...]
 ```
 
-### Classifier output format
+The conda environment from `environment.yaml` is already active when this
+script runs. Do NOT call `conda activate` inside it.
+
+Output format for classifiers (`sequence`, `Prediction`, `Probability_score`):
 
 ```
 sequence    Prediction    Probability_score
@@ -93,7 +87,7 @@ KFLQ...     AMP           0.87
 GIKL...     non-AMP       0.23
 ```
 
-### Regressor output format
+Output format for regressors (`sequence`, `MIC`, `MIC_unit`):
 
 ```
 sequence    MIC    MIC_unit
@@ -101,16 +95,14 @@ KFLQ...     4.2    ug/ml
 GIKL...     16.0   uM
 ```
 
-### Rules
+Rules:
+- Column names are case-sensitive and must match exactly.
+- Sequences the model cannot process must be skipped silently (warning to
+  stderr is fine).
+- Output order does not need to match input order.
+- Exit code 0 on success, non-zero on failure.
 
-- Column names are **case-sensitive** and must match exactly
-- Sequences the model cannot process must be **skipped** with a warning to stderr
-- Output order does not need to match input order
-- Exit code 0 on success, non-zero on failure
-- The conda env from environment.yaml is **already active** when this script runs.
-  Do NOT run `conda activate` inside inference.sh.
-
-### Example inference.sh
+Example:
 
 ```bash
 #!/bin/bash
@@ -126,27 +118,24 @@ python predict.py \
 
 ## Step 5: Create setup.sh (optional)
 
-If your model needs to download weights, compile extensions, or do other one-time
-setup beyond what conda handles, put it in `setup.sh`. This runs inside the
-model's conda env (already active). Do NOT create or activate any conda env here.
+For one-time setup beyond what conda handles (downloading weights, compiling
+extensions, etc.). Runs inside the model's conda env before inference. Do NOT
+call `conda activate` here.
 
 ```bash
 #!/bin/bash
-# Download model weights
 if [ ! -f weights/model.pt ]; then
     wget https://example.com/model.pt -O weights/model.pt
 fi
 ```
 
-This runs once before inference.
-
 ## Step 6: Generate validation reference data (recommended)
 
-Before making any code changes, capture the original model's predictions
-as a reference baseline. See [docs/validation.md](validation.md) for full details.
+Before adapting any model code, capture the original predictions as a
+reference baseline. See [docs/validation.md](validation.md) for full details.
 
 ```bash
-# Option A: From existing cached predictions
+# From existing cached predictions
 python workflow/scripts/generate_reference.py \
     --predictions /path/to/original_predictions.tsv \
     --fasta /path/to/input.fasta \
@@ -154,7 +143,7 @@ python workflow/scripts/generate_reference.py \
     --model-type classifier \
     --n-samples 200
 
-# Option B: Run the original code fresh
+# Or by running the original code fresh
 python workflow/scripts/generate_reference.py \
     --run-inference \
     --fasta /path/to/input.fasta \
@@ -163,34 +152,26 @@ python workflow/scripts/generate_reference.py \
     --n-samples 200
 ```
 
-This creates `models/my-model/validation/reference_input.fasta` and
-`reference_output.tsv`. After adapting the model, run `snakemake validate`
-to confirm your changes didn't alter predictions.
+After adapting the model, run `snakemake --profile profile/ validate` to
+confirm predictions are unchanged.
 
-## Step 7: Register in config.yaml
-
-Add your model to the `models:` list in `config/config.yaml`:
+## Step 7: Register in config/config.yaml
 
 ```yaml
 models:
-  - example-model
-  - my-model        # <-- add this
+  - my-model
 ```
 
-If your model has variants, make sure the relevant tasks either use `models: all`
-or list the variant names explicitly.
+## Step 8: Test
 
-## Testing your model
-
-Run the pipeline with just your model on the example dataset:
+Run your model on the example dataset to verify the output format:
 
 ```bash
-# Edit config to include only your model
-snakemake --snakefile workflow/Snakefile --use-conda --cores 1
+snakemake --profile profile/ score \
+    --config score_datasets="[example-dataset]" run_models="my-model"
 
-# Check the output
 cat results/inference/my-model/example-dataset/predictions.tsv
 cat results/inference/my-model/example-dataset/validation_report.json
 ```
 
-The validation report will tell you if your output format is correct.
+The validation report will flag any output format issues.
