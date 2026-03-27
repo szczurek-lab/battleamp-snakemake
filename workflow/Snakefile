@@ -5,13 +5,19 @@ A general-purpose Snakemake pipeline for benchmarking antimicrobial peptide
 prediction models. Model-agnostic, dataset-agnostic.
 
 Usage:
-    snakemake --snakefile workflow/Snakefile --cores 4
-    snakemake --snakefile workflow/Snakefile --use-conda --cores 8 --resources gpu=1
+    snakemake --profile profile/                                    # full benchmark
+    snakemake --profile profile/ score                              # inference only
+    snakemake --profile profile/ score --config fasta="/data/x.fasta"         # one-off FASTA
+    snakemake --profile profile/ --config run_models="ampeppy,amplify"
 """
 
 import re
 import yaml
 from pathlib import Path
+
+# Note: --use-conda is enforced via profile/config.yaml.
+# Each model rule carries a conda: directive; Snakemake will error on those
+# rules if --use-conda is not active.
 
 configfile: "config/config.yaml"
 
@@ -25,6 +31,24 @@ MODELS_DIR = (REPO_ROOT / "models").resolve()
 DATASETS_DIR = REPO_ROOT  # dataset paths in config are relative to repo root
 OUTPUT_DIR = Path("results")
 SEQ_COL = config.get("sequence_column", "sequence")
+
+
+# ---------------------------------------------------------------------------
+# Model selection: --config run_models="model1,model2" overrides config.yaml
+# ---------------------------------------------------------------------------
+
+_run_models_override = config.get("run_models", None)
+if _run_models_override:
+    _requested = [m.strip() for m in str(_run_models_override).split(",") if m.strip()]
+    _known = set(config["models"])
+    _unknown = [m for m in _requested if m not in _known]
+    if _unknown:
+        raise ValueError(
+            f"\n\n"
+            f"  ERROR: Unknown model(s) in run_models: {', '.join(_unknown)}\n"
+            f"  Available models (from config.yaml): {', '.join(sorted(_known))}\n"
+        )
+    config["models"] = _requested
 
 
 # ---------------------------------------------------------------------------
@@ -140,6 +164,39 @@ MULTIOUTPUT_MODEL_RE = _names_to_re(sorted(MULTIOUTPUT_MODELS.keys()))
 
 
 # ---------------------------------------------------------------------------
+# On-the-fly dataset: --config fasta="/path/to/sequences.fasta"
+# ---------------------------------------------------------------------------
+# Registers an unnamed FASTA as a temporary dataset without requiring a
+# config.yaml entry.  The dataset name is derived from the filename stem
+# (e.g. "my_peptides" from "/data/my_peptides.fasta").
+# Automatically restricts scoring to this dataset only, unless
+# score_datasets is also explicitly provided on the command line.
+
+_fasta_override = config.get("fasta", None)
+if _fasta_override:
+    _fasta_path = Path(_fasta_override).resolve()
+    if not _fasta_path.exists():
+        raise FileNotFoundError(
+            f"\n\n"
+            f"  ERROR: FASTA file not found: {_fasta_path}\n"
+        )
+    _fasta_dataset_name = _fasta_path.stem
+    if _fasta_dataset_name in config.get("datasets", {}):
+        raise ValueError(
+            f"\n\n"
+            f"  ERROR: Dataset name '{_fasta_dataset_name}' derived from the fasta "
+            f"filename already exists in config.yaml.\n"
+            f"  Rename your file or register the dataset in the config explicitly.\n"
+        )
+    config.setdefault("datasets", {})[_fasta_dataset_name] = {
+        "sequences": str(_fasta_path),
+        "_adhoc": True,
+    }
+    if "score_datasets" not in config:
+        config["score_datasets"] = [_fasta_dataset_name]
+
+
+# ---------------------------------------------------------------------------
 # Dataset and task definitions
 # ---------------------------------------------------------------------------
 
@@ -165,7 +222,8 @@ def get_variants_for_task(task_name):
 def get_dataset_fasta(dataset_name):
     """Resolve the FASTA path for a dataset."""
     ds = DATASETS[dataset_name]
-    return str((REPO_ROOT / ds["sequences"]).resolve())
+    p = Path(ds["sequences"])
+    return str(p if p.is_absolute() else (REPO_ROOT / p).resolve())
 
 
 def get_task_labels(task_name):
