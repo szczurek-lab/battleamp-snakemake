@@ -1,0 +1,27 @@
+# Snakemake profile for battleamp-snakemake
+# ==========================================
+# Always run via:
+#   snakemake --profile profile/ [targets]
+#
+# To restrict which models run without editing config.yaml:
+#   snakemake --profile profile/ --config run_models="ampeppy,amplify,ampredmfa"
+#
+# These flags are mandatory and must not be removed:
+#   use-conda         - each model runs in its own isolated conda env
+#   conda-frontend    - mamba is required for reliable env solving
+#   keep-going        - a failing model does not abort the rest of the pipeline
+
+snakefile: workflow/Snakefile
+
+use-conda: true
+keep-going: true
+cores: 8
+resources:
+  - gpu=1
+
+# Cache conda envs in a fixed location so they are reused across runs
+# and are easy to inspect if something goes wrong.
+conda-prefix: .snakemake/conda
+
+# Print shell commands to the log so failures are easier to diagnose.
+printshellcmds: true
