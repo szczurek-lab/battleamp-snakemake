@@ -211,14 +211,30 @@ cached and not re-run.
 
 ## I want to add my own model
 
-Create a directory under `models/` with this structure:
+Each model in the benchmark lives in its own Git repository and is tracked as a
+**Git submodule** under `models/`. This keeps model code, weights, and version
+history independent from the pipeline while allowing reproducible pinning to
+specific commits.
 
-```
-models/your-model/
-    model.yaml         # metadata: name, type, length limits, GPU requirement
-    environment.yaml   # conda env spec -- Snakemake creates and caches this automatically
-    inference.sh       # $1 = input FASTA, $2 = output TSV; exit 0 on success
-    setup.sh           # optional: download weights, compile extensions
+### Short version
+
+```bash
+# 1. Fork or create a repo for your model, then add it as a submodule
+
+git submodule add https://github.com/your-org/your-model.git models/your-model
+
+# 2. Ensure these interface files exist inside models/your-model/
+#    model.yaml         - metadata (name, type, length limits, GPU)
+#    environment.yaml   - conda env spec
+#    inference.sh       - reads input FASTA ($1), writes output TSV ($2)
+#    setup.sh           - optional: download weights, compile extensions
+
+# 3. Register and test
+#    Add your-model to models: in config/config.yaml
+#    Add an entry to models/registry.yaml, then:
+python scripts/generate_model_table.py
+snakemake --profile profile/ score \
+    --config score_datasets="[example-dataset]" run_models="your-model"
 ```
 
 `inference.sh` must write a TSV in the classifier or regressor format described
@@ -226,15 +242,8 @@ in [Output format](#output-format) above. The pipeline pre-filters the input
 FASTA to the length range declared in `model.yaml`, so `inference.sh` does not
 need to handle out-of-range sequences.
 
-Then:
-
-1. Add `your-model` to the `models:` list in `config/config.yaml`.
-2. Add an entry to `models/registry.yaml` and regenerate the model table:
-   ```bash
-   python scripts/generate_model_table.py
-   ```
-
-See [docs/adding_a_model.md](docs/adding_a_model.md) for a full walkthrough.
+See [docs/adding_a_model.md](docs/adding_a_model.md) for a full walkthrough
+covering multi-variant models, validation reference data, and common pitfalls.
 
 
 ## Reference

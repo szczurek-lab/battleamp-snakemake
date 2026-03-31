@@ -1,13 +1,67 @@
 # Adding a Model
 
 This guide explains how to integrate a new AMP prediction model into the
-pipeline.
+pipeline. Each model is tracked as a Git submodule so that model code and
+version history stay independent from the benchmark infrastructure.
 
-## Step 1: Create the model directory
+## Overview
+
+The pipeline interacts with your model through a small set of interface files
+inside the model directory. Your model's own code, weights, and dependencies
+live alongside these files in its own Git repository. The pipeline never
+modifies your model code; it only reads the interface files and calls
+`inference.sh`.
+
+Required interface files:
+
+```
+models/my-model/
+    model.yaml         # metadata read by the pipeline
+    environment.yaml   # conda env spec, created and cached by Snakemake
+    inference.sh       # called by the pipeline: $1 = input FASTA, $2 = output TSV
+    setup.sh           # optional: download weights, compile extensions
+```
+
+
+## Step 1: Add the model as a Git submodule
+
+If the model already has a public repository (the typical case for published
+tools), add it directly:
 
 ```bash
-mkdir models/my-model
+git submodule add https://github.com/author/their-model.git models/my-model
 ```
+
+If you need to make changes to the original code (for example, to add the
+interface files), fork the repository first and add your fork:
+
+```bash
+git submodule add https://github.com/your-org/their-model-fork.git models/my-model
+```
+
+If the model does not have a repository yet, create one, push it to a remote,
+and then add it as a submodule:
+
+```bash
+# Create and push the model repo
+mkdir /tmp/my-model && cd /tmp/my-model
+git init
+# ... add model code ...
+git remote add origin https://github.com/your-org/my-model.git
+git push -u origin main
+
+# Back in the pipeline repo
+cd /path/to/battleamp-snakemake
+git submodule add https://github.com/your-org/my-model.git models/my-model
+```
+
+After adding the submodule, commit the change to the pipeline repo:
+
+```bash
+git add .gitmodules models/my-model
+git commit -m "Add my-model as submodule"
+```
+
 
 ## Step 2: Create model.yaml
 
@@ -96,6 +150,7 @@ GIKL...     16.0   uM
 ```
 
 Rules:
+
 - Column names are case-sensitive and must match exactly.
 - Sequences the model cannot process must be skipped silently (warning to
   stderr is fine).
@@ -129,7 +184,24 @@ if [ ! -f weights/model.pt ]; then
 fi
 ```
 
-## Step 6: Generate validation reference data (recommended)
+## Step 6: Commit the interface files to the model repo
+
+The interface files you created in Steps 2 through 5 must be committed inside
+the model's own repository (the submodule), not in the pipeline repo.
+
+```bash
+cd models/my-model
+git add model.yaml environment.yaml inference.sh setup.sh
+git commit -m "Add BATTLE-AMP interface files"
+git push
+
+# Return to the pipeline repo and update the submodule reference
+cd ../..
+git add models/my-model
+git commit -m "Update my-model submodule to include interface files"
+```
+
+## Step 7: Generate validation reference data (recommended)
 
 Before adapting any model code, capture the original predictions as a
 reference baseline. See [docs/validation.md](validation.md) for full details.
@@ -155,14 +227,20 @@ python workflow/scripts/generate_reference.py \
 After adapting the model, run `snakemake --profile profile/ validate` to
 confirm predictions are unchanged.
 
-## Step 7: Register in config/config.yaml
+## Step 8: Register in config/config.yaml and update the model table
 
 ```yaml
 models:
   - my-model
 ```
 
-## Step 8: Test
+Then add an entry to `models/registry.yaml` and regenerate the table:
+
+```bash
+python scripts/generate_model_table.py
+```
+
+## Step 9: Test
 
 Run your model on the example dataset to verify the output format:
 
@@ -175,3 +253,19 @@ cat results/inference/my-model/example-dataset/validation_report.json
 ```
 
 The validation report will flag any output format issues.
+
+## Updating a model
+
+Because each model is a submodule, updating to a newer version of the model
+code is straightforward:
+
+```bash
+cd models/my-model
+git pull origin main        # or checkout a specific tag/commit
+cd ../..
+git add models/my-model
+git commit -m "Update my-model to v1.2.0"
+```
+
+This pins the pipeline to the new commit. Other users pick up the change after
+running `git submodule update --init --recursive`.
