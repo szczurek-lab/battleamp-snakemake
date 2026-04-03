@@ -15,7 +15,6 @@ modifies your model code; it only reads the interface files and calls
 Required interface files:
 
 ```
-models/my-model/
     model.yaml         # metadata read by the pipeline
     environment.yaml   # conda env spec, created and cached by Snakemake
     inference.sh       # called by the pipeline: $1 = input FASTA, $2 = output TSV
@@ -25,34 +24,8 @@ models/my-model/
 
 ## Step 1: Add the model as a Git submodule
 
-If the model already has a public repository (the typical case for published
-tools), add it directly:
-
 ```bash
-git submodule add https://github.com/author/their-model.git models/my-model
-```
-
-If you need to make changes to the original code (for example, to add the
-interface files), fork the repository first and add your fork:
-
-```bash
-git submodule add https://github.com/your-org/their-model-fork.git models/my-model
-```
-
-If the model does not have a repository yet, create one, push it to a remote,
-and then add it as a submodule:
-
-```bash
-# Create and push the model repo
-mkdir /tmp/my-model && cd /tmp/my-model
-git init
-# ... add model code ...
-git remote add origin https://github.com/your-org/my-model.git
-git push -u origin main
-
-# Back in the pipeline repo
-cd /path/to/battleamp-snakemake
-git submodule add https://github.com/your-org/my-model.git models/my-model
+git submodule add https://github.com/author/my-model.git models/my-model
 ```
 
 After adding the submodule, commit the change to the pipeline repo:
