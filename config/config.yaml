@@ -15,9 +15,9 @@ models:
   - apex
 #  - mole-amp
   - mbc-attention
-#  - sensexamp
-#  - ampredictor
-#  - deep-amp
+  - sensexamp
+  - ampredictor
+  - deep-amp
 
 # --- Benchmark unit for MIC regression ---
 # All MIC values (predictions and labels) are converted to this unit before
@@ -47,10 +47,10 @@ datasets:
     sequences: datasets/battleamp-all/sequences.fasta
   deep-amp:
     sequences: datasets/deep-amp/all_sequences.fasta
-  pa-more-data-strength-1:
-    sequences: datasets/pa-more-data-strength-1/sequences.fasta
   slay:
     sequences: datasets/slay/sequences.fasta
+
+
 
 # --- Tasks ---
 # Each task defines an evaluation: which dataset's predictions to score,
@@ -296,8 +296,8 @@ tasks:
     model_type:
       - classifier
       - regressor
-      -
-# === B5: SLAY screening ===
+
+  # === B5: SLAY screening ===
   slay:
     type: classification
     dataset: slay
@@ -306,7 +306,7 @@ tasks:
       - classifier
       - regressor
 
-# === C1: Paired sequences (special evaluation) ===
+  # === C1: Paired sequences (special evaluation) ===
   # paired_sequences:
   #   type: paired
   #   dataset: battleamp-all
@@ -370,5 +370,4 @@ tasks:
     type: regression
     dataset: deep-amp
     labels: datasets/deep-amp/task_regression_grampos.tsv
-    model_type:
-
+    model_type: regressor
