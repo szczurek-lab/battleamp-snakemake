@@ -1,6 +1,9 @@
 # Pipeline outputs
 results/
 
+# Figures — PDFs are regenerable from .py scripts; only PNGs are tracked
+figures/*.pdf
+
 # Snakemake
 .snakemake/
 

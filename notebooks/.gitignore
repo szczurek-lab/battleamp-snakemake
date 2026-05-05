@@ -9,6 +9,10 @@ figure_supp_mic_cache/
 *.tar.gz
 *.zip
 
+# Notebooks (replaced by standalone .py scripts)
+battleamp_figures.ipynb
+battleamp_figures_new.ipynb
+
 # Temporary / one-off scripts
 discover.sh
 discover_results.sh
