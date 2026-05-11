@@ -363,26 +363,107 @@ results/
 
 ### Running on an HPC Cluster
 
-```bash
-# Single node
-snakemake --profile profile/
+#### Single-node (interactive or batch allocation)
 
-# Submit each rule as a separate SLURM job
-snakemake --profile slurm/
-```
-
-GPU resource scheduling uses `--resources`. The bundled profile requests one
-GPU by default:
+The bundled `profile/` works on a single node with direct GPU access. The
+simplest way to use GPUs on a SLURM cluster without the executor plugin is to
+request an interactive allocation and run snakemake inside it:
 
 ```bash
-snakemake --profile profile/ --resources gpu=2   # two GPUs
-snakemake --profile profile/ --resources gpu=0   # CPU only
+srun --partition=<your-partition> --gres=gpu:1 \
+     --mem=64G --cpus-per-task=8 --time=4:00:00 --pty bash
+
+# Once inside the allocation:
+source ~/.venvs/battleamp-snakemake/bin/activate
+snakemake --profile profile/ score \
+    --config score_datasets="[<your-dataset>]"
 ```
 
-On nodes with slow internet, set a longer pip timeout before running:
+This is the most robust option when the SLURM executor plugin is unavailable
+or the cluster has strict job submission policies.
+
+#### Multi-job SLURM execution
+
+To submit each pipeline rule as a separate SLURM job, install the executor
+plugin into the pipeline venv and use the bundled `slurm/` profile:
+
+```bash
+pip install snakemake-executor-plugin-slurm
+snakemake --profile slurm/ score \
+    --config score_datasets="[<your-dataset>]"
+```
+
+**Creating `slurm/config.yaml`.** The repository ships a template; copy and
+adapt it to your cluster before first use:
+
+```yaml
+executor: slurm
+jobs: 10                      # keep below your QOS job limit
+
+use-conda: true
+keep-going: true
+conda-prefix: .snakemake/conda
+
+default-resources:
+  slurm_partition: <your-partition>
+  slurm_account: <your-account>   # required; omitting this stalls submission silently
+  mem_mb: 16000
+  runtime: 240                    # minutes
+  cpus_per_task: 4
+
+set-resources:
+  run_inference:
+    mem_mb: 64000
+    runtime: 720
+    cpus_per_task: 8
+    slurm_extra: "'--gres=gpu:1'"
+  run_multioutput_inference:
+    mem_mb: 64000
+    runtime: 720
+    cpus_per_task: 8
+    slurm_extra: "'--gres=gpu:1'"
+  model_setup:
+    mem_mb: 16000
+    runtime: 120
+    cpus_per_task: 4
+```
+
+`slurm_account` must be set explicitly. Without it, snakemake attempts to
+guess the account from `sacctmgr`, which can stall or pick the wrong account
+silently.
+
+`jobs` must stay at or below your cluster QOS limit. If you are unsure:
+
+```bash
+sacctmgr show qos format=name,maxjobspu
+```
+
+**Verifying submission.** Before running the full benchmark, test with the
+example dataset to confirm jobs actually appear in the queue:
+
+```bash
+snakemake --profile slurm/ score \
+    --config fasta="datasets/example-dataset/sequences.fasta" \
+    run_models="example-model"
+
+# In another terminal:
+squeue -u $USER
+```
+
+#### Slow internet nodes
+
+On nodes without direct internet access, conda environment creation can time
+out when pulling packages. Set a longer timeout before running:
 
 ```bash
 export PIP_DEFAULT_TIMEOUT=300
+```
+
+If conda repodata fails to download (error: `An error occurred when loading
+cached repodata`), clear the index cache and retry:
+
+```bash
+conda clean --index-cache
 ```
 
 

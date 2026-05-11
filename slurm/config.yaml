@@ -1,0 +1,47 @@
+# Snakemake profile for SLURM execution on bury.
+# Usage:
+#   snakemake --profile slurm/ score --config score_datasets="[pyelonephritis-borgards]"
+#
+# Requires the snakemake-executor-plugin-slurm package:
+#   pip install snakemake-executor-plugin-slurm
+#
+# Cluster (bury): one partition 'common' with 2x RTX 5000 GPUs.
+
+snakefile: workflow/Snakefile
+
+executor: slurm
+jobs: 2                            # max simultaneous SLURM jobs
+
+use-conda: true
+keep-going: true
+conda-prefix: .snakemake/conda
+printshellcmds: true
+
+# Default resources for every rule. Per-rule overrides go in set-resources below.
+default-resources:
+  slurm_account: mim
+  slurm_partition: common
+  mem_mb: 16000
+  runtime: 240
+  cpus_per_task: 4
+
+# Per-rule resource overrides.
+# Inference rules need a GPU and more memory; everything else stays at defaults.
+set-resources:
+  run_inference:
+    slurm_partition: common
+    mem_mb: 128000
+    runtime: 720
+    cpus_per_task: 16
+    slurm_extra: "'--gres=gpu:1'"
+  run_multioutput_inference:
+    slurm_partition: common
+    mem_mb: 128000
+    runtime: 720
+    cpus_per_task: 16
+    slurm_extra: "'--gres=gpu:1'"
+  model_setup:
+    slurm_partition: common
+    mem_mb: 16000
+    runtime: 120
+    cpus_per_task: 4
