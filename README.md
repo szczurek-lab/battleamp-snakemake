@@ -33,7 +33,7 @@ pip install snakemake pulp pandas scikit-learn scipy numpy pyyaml biopython
 
 # Option B: conda
 conda create -n battleamp-snakemake -c conda-forge -c bioconda \
-    snakemake pandas scikit-learn scipy numpy pyyaml
+    snakemake pandas scikit-learn scipy numpy pyyaml biopython
 conda activate battleamp-snakemake
 ```
 
