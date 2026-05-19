@@ -191,7 +191,7 @@ for d in [ml_safe,ml_cliff]:
         if len(a)>0: allml.extend(np.log2(np.clip(a,0.01,None)))
         if len(i)>0: allml.extend(np.log2(np.clip(i,0.01,None)))
 ymi=np.percentile(allml,0.5)-0.5; yma=np.percentile(allml,99.5)+0.5
-ax5g.set_ylim(ymi,yma); ax5h.set_ylim(ymi,yma); ax5g.invert_yaxis(); ax5h.invert_yaxis()
+ax5g.set_ylim(ymi,yma); ax5h.set_ylim(ymi,yma)
 ax5g.legend(handles=[Patch(fc=ACTIVE_COLOR,lw=0,alpha=0.9,label="Active"),
     Patch(fc=INACTIVE_COLOR,lw=0,alpha=0.9,label="Inactive")],
     fontsize=FS_LEGEND,loc="lower left",frameon=True,facecolor="white",edgecolor="0.7",handlelength=1,handleheight=0.6)
