@@ -49,6 +49,8 @@ datasets:
     sequences: datasets/deep-amp/all_sequences.fasta
   slay:
     sequences: datasets/slay/sequences.fasta
+  pyelonephritis-borgards:
+    sequences: datasets/pyelonephritis-borgards/sequences.fasta
 
 
 
@@ -336,6 +338,7 @@ tasks:
     type: classification
     dataset: deep-amp
     labels: datasets/deep-amp/task_classification.tsv
+    positive_label: 1
     model_type:
       - classifier
       - regressor
@@ -345,6 +348,7 @@ tasks:
     type: classification
     dataset: deep-amp
     labels: datasets/deep-amp/task_species_gramneg.tsv
+    positive_label: 1
     model_type:
       - classifier
       - regressor
@@ -354,6 +358,7 @@ tasks:
     type: classification
     dataset: deep-amp
     labels: datasets/deep-amp/task_species_grampos.tsv
+    positive_label: 1
     model_type:
       - classifier
       - regressor
