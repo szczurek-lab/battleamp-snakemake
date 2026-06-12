@@ -204,7 +204,7 @@ snakemake --profile profile/ --config run_models="ampeppy,amplify,ampredmfa"
 
 The pipeline runs five stages automatically: **setup** (download weights,
 compile extensions), **pre-filter** (remove sequences outside each model's
-length limits), **inference**, **evaluate** (compute metrics against labels),
+length limits), **inference** (run inference), **evaluate** (compute metrics against labels),
 and **aggregate** (combine all metrics into summary tables). Completed steps are
 cached and not re-run.
 
@@ -275,26 +275,28 @@ Total: 9 classifiers, 4 regressors, 21 variants
 
 #### Classification
 
-| Metric | Description |
-|--------|-------------|
-| accuracy | Fraction of correctly classified sequences |
-| mcc | Matthews correlation coefficient (-1 to +1) |
-| f1 | Harmonic mean of precision and recall |
-| precision | TP / (TP + FP) |
-| recall / tpr | TP / (TP + FN) |
-| fpr | FP / (FP + TN) |
-| tnr | TN / (TN + FP) |
-| informedness | TPR + TNR - 1; 0 = random, 1 = perfect |
-| pos_preds | Fraction of all predictions that are positive |
-| auroc | Area under the ROC curve |
-| auprc | Area under the precision-recall curve |
-| precision_at_k | Precision among top-k predictions (default k=100) |
-| pauroc_01 | Partial AUROC at FPR <= 0.1 (McClish-normalized) |
-| pauroc_001 | Partial AUROC at FPR <= 0.01 |
+| Metric         | Description                                              |
+|----------------|----------------------------------------------------------|
+| accuracy       | Fraction of correctly classified sequences               |
+| mcc            | Matthews Correlation Coefficient (-1 to +1); 1 = perfect |
+| precision      | TP / (TP + FP)                                           |
+| recall / tpr   | TP / (TP + FN)                                           |
+| f1             | Harmonic mean of precision and recall                    |
+| fpr            | FP / (FP + TN)                                           |
+| tnr            | TN / (TN + FP)                                           |
+| informedness   | TPR + TNR - 1; 0 = random, 1 = perfect                   |
+| pos_preds      | Fraction of all predictions that are positive            |
+| auroc          | Area under the ROC curve                                 |
+| auprc          | Area under the precision-recall curve                    |
+| precision_at_k | Precision among top-k predictions (default k=100)        |
+| pauroc_01      | Partial AUROC at FPR <= 0.1 (McClish-normalized)         |
+| pauroc_001     | Partial AUROC at FPR <= 0.01                             |
+
+TP - true positives, FP - false positives, TN - true negatives, FN - false negatives.
 
 When a regressor is evaluated on a classification task, MIC predictions are
 binarized using `activity_thresholds`. Sequences in the grey zone between
-`active` and `inactive` thresholds are excluded. The negative MIC is used as
+`active` and `inactive` activity thresholds are excluded. The negative MIC is used as
 the ranking score for AUROC and precision@k.
 
 #### Regression
@@ -318,8 +320,7 @@ limits. Remove the key from the config to disable clamping.
 
 All settings live in `config/config.yaml`.
 
-**`benchmark_unit`** (`"ug/ml"` or `"uM"`). Unit all MIC values are converted
-to before evaluation. Per-peptide molecular weight is used for conversion.
+**`benchmark_unit`** (`"ug/ml"` or `"uM"`). It specifies the concentration unit to which all MIC values are converted to before the evaluation. Per-peptide molecular weight is used for the conversion.
 
 **`activity_thresholds`**. Controls binarization of regressor output for
 classification tasks. `active`: MIC at or below this is positive. `inactive`:
