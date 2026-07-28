@@ -37,6 +37,11 @@ conda create -n battleamp-snakemake -c conda-forge -c bioconda \
 conda activate battleamp-snakemake
 ```
 
+> **Do not stack environments.** A venv activated on top of a conda env (prompt
+> shows `(venv) (base)`) stays ahead of the model environments on `PATH`, so
+> models run against the venv instead of their own conda env. Run
+> `conda deactivate` first. The pipeline refuses to start otherwise.
+
 Clone the repository:
 
 ```bash
