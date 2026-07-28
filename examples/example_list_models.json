@@ -1,0 +1,171 @@
+{
+  "models": [
+    {
+      "name": "example-model",
+      "type": "classifier",
+      "framework": "random-baseline",
+      "gpu_required": false,
+      "length_min": null,
+      "length_max": null,
+      "variants": []
+    },
+    {
+      "name": "ampeppy",
+      "type": "classifier",
+      "framework": "cuml-random-forest",
+      "gpu_required": true,
+      "length_min": null,
+      "length_max": null,
+      "variants": []
+    },
+    {
+      "name": "amplify",
+      "type": "classifier",
+      "framework": "tensorflow",
+      "gpu_required": true,
+      "length_min": 2,
+      "length_max": 200,
+      "variants": []
+    },
+    {
+      "name": "ampscanner",
+      "type": "classifier",
+      "framework": "cnn-lstm",
+      "gpu_required": false,
+      "length_min": 10,
+      "length_max": 200,
+      "variants": []
+    },
+    {
+      "name": "ampredmfa",
+      "type": "classifier",
+      "framework": "lstm-cnn-attention",
+      "gpu_required": true,
+      "length_min": 2,
+      "length_max": null,
+      "variants": []
+    },
+    {
+      "name": "hydramp-amp-classifier",
+      "type": "classifier",
+      "framework": "lstm",
+      "gpu_required": true,
+      "length_min": 1,
+      "length_max": 25,
+      "variants": []
+    },
+    {
+      "name": "hydramp-mic-classifier",
+      "type": "classifier",
+      "framework": "cnn-lstm",
+      "gpu_required": true,
+      "length_min": 1,
+      "length_max": 25,
+      "variants": []
+    },
+    {
+      "name": "apex",
+      "type": "regressor",
+      "framework": "gru-attention-ensemble",
+      "gpu_required": true,
+      "length_min": 1,
+      "length_max": 50,
+      "variants": [
+        {
+          "name": "apex-abaumannii",
+          "type": "regressor"
+        },
+        {
+          "name": "apex-ecoli",
+          "type": "regressor"
+        },
+        {
+          "name": "apex-kpneumoniae",
+          "type": "regressor"
+        },
+        {
+          "name": "apex-min",
+          "type": "regressor"
+        },
+        {
+          "name": "apex-paeruginosa",
+          "type": "regressor"
+        },
+        {
+          "name": "apex-saureus",
+          "type": "regressor"
+        }
+      ]
+    },
+    {
+      "name": "mbc-attention",
+      "type": "regressor",
+      "framework": null,
+      "gpu_required": false,
+      "length_min": 5,
+      "length_max": 60,
+      "variants": []
+    },
+    {
+      "name": "sensexamp",
+      "type": "classifier",
+      "framework": null,
+      "gpu_required": true,
+      "length_min": 6,
+      "length_max": 25,
+      "variants": [
+        {
+          "name": "sensexamp-classifier",
+          "type": "classifier"
+        },
+        {
+          "name": "sensexamp-ecoli",
+          "type": "regressor"
+        },
+        {
+          "name": "sensexamp-saureus",
+          "type": "regressor"
+        }
+      ]
+    },
+    {
+      "name": "ampredictor",
+      "type": "regressor",
+      "framework": null,
+      "gpu_required": true,
+      "length_min": 1,
+      "length_max": 65,
+      "variants": []
+    },
+    {
+      "name": "deep-amp",
+      "type": "regressor",
+      "framework": null,
+      "gpu_required": false,
+      "length_min": 1,
+      "length_max": 48,
+      "variants": [
+        {
+          "name": "deep-amp-cnn-gramneg",
+          "type": "regressor"
+        },
+        {
+          "name": "deep-amp-cnn-grampos",
+          "type": "regressor"
+        },
+        {
+          "name": "deep-amp-lstm-gramneg",
+          "type": "regressor"
+        },
+        {
+          "name": "deep-amp-lstm-grampos",
+          "type": "regressor"
+        }
+      ]
+    }
+  ],
+  "units": [
+    "ug/ml",
+    "uM"
+  ]
+}

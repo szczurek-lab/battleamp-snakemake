@@ -1,0 +1,396 @@
+{
+  "valid": true,
+  "n_records": 25,
+  "n_sequences": 21,
+  "sequences": [
+    {
+      "ids": [
+        "seq_001_AMP_magainin2",
+        "duplicate_of_seq_001"
+      ],
+      "sequence": "GIGKFLHSAKKFGKAFVGEIMNS",
+      "length": 23
+    },
+    {
+      "ids": [
+        "seq_002_AMP_cecropinA"
+      ],
+      "sequence": "KWKLFKKIEKVGQNIRDGIIKAGPAVAVVGQATQIAK",
+      "length": 37
+    },
+    {
+      "ids": [
+        "seq_003_AMP_melittin"
+      ],
+      "sequence": "GIGAVLKVLTTGLPALISWIKRKRQQ",
+      "length": 26
+    },
+    {
+      "ids": [
+        "seq_004_AMP_defensin1"
+      ],
+      "sequence": "ATCDLLSGTGINHSACAAHCLLRGNRGGYCNGKAVCVCRN",
+      "length": 40
+    },
+    {
+      "ids": [
+        "seq_005_AMP_indolicidin"
+      ],
+      "sequence": "ILPWKWPWWPWRR",
+      "length": 13
+    },
+    {
+      "ids": [
+        "seq_006_AMP_protegrin1"
+      ],
+      "sequence": "RGGRLCYCRRRFCVCVGR",
+      "length": 18
+    },
+    {
+      "ids": [
+        "seq_007_AMP_ll37"
+      ],
+      "sequence": "LLGDFFRKSKEKIGKEFKRIVQRIKDFLRNLVPRTES",
+      "length": 37
+    },
+    {
+      "ids": [
+        "seq_008_AMP_thanatin"
+      ],
+      "sequence": "GSKKPVPIIYCNRRTGKCQRM",
+      "length": 21
+    },
+    {
+      "ids": [
+        "seq_009_AMP_lactoferricin"
+      ],
+      "sequence": "FKCRRWQWRMKKLGAPSITCVRRAF",
+      "length": 25
+    },
+    {
+      "ids": [
+        "seq_010_AMP_histatin5"
+      ],
+      "sequence": "DSHAKRHHGYKRKFHEKHHSHRGY",
+      "length": 24
+    },
+    {
+      "ids": [
+        "seq_011_nonAMP_insulin_fragment"
+      ],
+      "sequence": "GIVEQCCTSICSLYQLENYCN",
+      "length": 21
+    },
+    {
+      "ids": [
+        "seq_012_nonAMP_albumin_fragment"
+      ],
+      "sequence": "DAHKSEVAHRFKDLGEENFKALVLIAFAQYLQQCPF",
+      "length": 36
+    },
+    {
+      "ids": [
+        "seq_013_nonAMP_hemoglobin_fragment"
+      ],
+      "sequence": "VHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWT",
+      "length": 38
+    },
+    {
+      "ids": [
+        "seq_014_nonAMP_lysozyme_fragment"
+      ],
+      "sequence": "KVFGRCELAAAMKRHGLDNYRGYSLGNWVCAAK",
+      "length": 33
+    },
+    {
+      "ids": [
+        "seq_015_nonAMP_ubiquitin_fragment"
+      ],
+      "sequence": "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGI",
+      "length": 36
+    },
+    {
+      "ids": [
+        "seq_016_nonAMP_cytochrome_fragment"
+      ],
+      "sequence": "GDVEKGKKIFIMKCSQCHTVEKGGKHKTGPNLHGLFGRK",
+      "length": 39
+    },
+    {
+      "ids": [
+        "seq_017_nonAMP_actin_fragment"
+      ],
+      "sequence": "MDDDIAALVVDNGSGMCKAGFAGDDAPRAVFPSIVGRPR",
+      "length": 39
+    },
+    {
+      "ids": [
+        "seq_018_nonAMP_tubulin_fragment"
+      ],
+      "sequence": "MRECISIHVGQAGVQIGNACWELYCLEHGIQPDGQMPSD",
+      "length": 39
+    },
+    {
+      "ids": [
+        "seq_019_nonAMP_histone_fragment"
+      ],
+      "sequence": "MARTKQTARKSTGGKAPRKQLATKAARKSAPATGGVKKPHR",
+      "length": 41
+    },
+    {
+      "ids": [
+        "seq_020_nonAMP_collagen_fragment"
+      ],
+      "sequence": "GPPGPPGPPGPPGPPGPPGPPGPPGPPGPP",
+      "length": 30
+    },
+    {
+      "ids": [
+        "far_too_long"
+      ],
+      "sequence": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "length": 300
+    }
+  ],
+  "rejected": [
+    {
+      "id": "duplicate_of_seq_001",
+      "sequence": "GIGKFLHSAKKFGKAFVGEIMNS",
+      "reason": "duplicate_sequence",
+      "detail": null,
+      "message": "Sequence is identical to an earlier record and is scored only once."
+    },
+    {
+      "id": "has_d_amino_acids",
+      "sequence": "GIGkFLHSAKKFGKAF",
+      "reason": "lowercase_d_amino_acid",
+      "detail": null,
+      "message": "Sequence contains lowercase letters, which denote D-amino acids. No integrated model supports them."
+    },
+    {
+      "id": "has_unknown_residue",
+      "sequence": "GIGKFLHSAXKFGKAF",
+      "reason": "non_standard_amino_acid",
+      "detail": "found: X",
+      "message": "Sequence contains characters outside the 20 standard amino acids. (found: X)"
+    },
+    {
+      "id": "has_a_gap",
+      "sequence": "GIGK-FLHSAKKFGKAF",
+      "reason": "whitespace_or_gap",
+      "detail": null,
+      "message": "Sequence contains whitespace or gap characters (space, tab, '-' or '.')."
+    }
+  ],
+  "model_coverage": {
+    "apex-abaumannii": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 1,
+      "length_max": 50
+    },
+    "apex-ecoli": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 1,
+      "length_max": 50
+    },
+    "apex-kpneumoniae": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 1,
+      "length_max": 50
+    },
+    "apex-min": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 1,
+      "length_max": 50
+    },
+    "apex-paeruginosa": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 1,
+      "length_max": 50
+    },
+    "apex-saureus": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 1,
+      "length_max": 50
+    },
+    "deep-amp-cnn-gramneg": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 1,
+      "length_max": 48
+    },
+    "deep-amp-cnn-grampos": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 1,
+      "length_max": 48
+    },
+    "deep-amp-lstm-gramneg": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 1,
+      "length_max": 48
+    },
+    "deep-amp-lstm-grampos": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 1,
+      "length_max": 48
+    },
+    "example-model": {
+      "n_eligible": 21,
+      "n_too_short": 0,
+      "n_too_long": 0,
+      "length_min": null,
+      "length_max": null
+    },
+    "mbc-attention": {
+      "n_eligible": 20,
+      "n_too_short": 0,
+      "n_too_long": 1,
+      "length_min": 5,
+      "length_max": 60
+    },
+    "sensexamp-classifier": {
+      "n_eligible": 7,
+      "n_too_short": 0,
+      "n_too_long": 14,
+      "length_min": 6,
+      "length_max": 25
+    },
+    "sensexamp-ecoli": {
+      "n_eligible": 7,
+      "n_too_short": 0,
+      "n_too_long": 14,
+      "length_min": 6,
+      "length_max": 25
+    },
+    "sensexamp-saureus": {
+      "n_eligible": 7,
+      "n_too_short": 0,
+      "n_too_long": 14,
+      "length_min": 6,
+      "length_max": 25
+    }
+  },
+  "messages": [
+    {
+      "severity": "info",
+      "kind": "input",
+      "text": "1 of 25 sequences: Sequence is identical to an earlier record and is scored only once.",
+      "ids": [
+        "duplicate_of_seq_001"
+      ]
+    },
+    {
+      "severity": "warning",
+      "kind": "input",
+      "text": "1 of 25 sequences: Sequence contains lowercase letters, which denote D-amino acids. No integrated model supports them.",
+      "ids": [
+        "has_d_amino_acids"
+      ]
+    },
+    {
+      "severity": "warning",
+      "kind": "input",
+      "text": "1 of 25 sequences: Sequence contains characters outside the 20 standard amino acids.",
+      "ids": [
+        "has_unknown_residue"
+      ]
+    },
+    {
+      "severity": "warning",
+      "kind": "input",
+      "text": "1 of 25 sequences: Sequence contains whitespace or gap characters (space, tab, '-' or '.').",
+      "ids": [
+        "has_a_gap"
+      ]
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "apex-abaumannii accepts peptides of 1-50 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "apex-ecoli accepts peptides of 1-50 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "apex-kpneumoniae accepts peptides of 1-50 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "apex-min accepts peptides of 1-50 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "apex-paeruginosa accepts peptides of 1-50 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "apex-saureus accepts peptides of 1-50 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "deep-amp-cnn-gramneg accepts peptides of 1-48 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "deep-amp-cnn-grampos accepts peptides of 1-48 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "deep-amp-lstm-gramneg accepts peptides of 1-48 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "deep-amp-lstm-grampos accepts peptides of 1-48 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "mbc-attention accepts peptides of 5-60 aa; 1 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "sensexamp-classifier accepts peptides of 6-25 aa; 14 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "sensexamp-ecoli accepts peptides of 6-25 aa; 14 of your 21 sequences fall outside that range and will have no score from it."
+    },
+    {
+      "severity": "info",
+      "kind": "coverage",
+      "text": "sensexamp-saureus accepts peptides of 6-25 aa; 14 of your 21 sequences fall outside that range and will have no score from it."
+    }
+  ]
+}

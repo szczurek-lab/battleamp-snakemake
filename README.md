@@ -11,6 +11,7 @@ bioRxiv, 2026. doi:[10.64898/2026.06.19.733349](https://doi.org/10.64898/2026.06
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [I want to score my own peptides](#i-want-to-score-my-own-peptides)
+- [Web service API](#web-service-api)
 - [I want to reproduce the benchmark](#i-want-to-reproduce-the-benchmark)
 - [I want to add my own model](#i-want-to-add-my-own-model)
 - [Reference](#reference)
@@ -193,6 +194,83 @@ with a list of valid options.
 Sequences outside a model's accepted length range are silently skipped.
 Evaluation metrics appear in `results/evaluation/{variant}/{task}/metrics.json`
 and are aggregated into `results/aggregated/summary.tsv`.
+
+### One table, one row per peptide
+
+The paths above give you one file per model. To get a single table with **one
+row per peptide and one column per model**, use the `battleamp` package or its
+command-line front end:
+
+```bash
+# check the input before running anything (fast)
+python scripts/score_fasta.py --fasta my_peptides.fasta --validate-only
+
+# run selected models, MIC in uM, write scores.tsv + result.json
+python scripts/score_fasta.py --fasta my_peptides.fasta \
+    --models ampeppy,apex,sensexamp --unit uM --out-dir jobs/123
+```
+
+Classifier columns are named `{variant}_prob`, regressor columns
+`{variant}_MIC_{unit}`. MIC values are converted to your chosen unit using each
+peptide's molecular weight, so models reporting in µM and µg/ml are directly
+comparable. An empty cell means that model produced no score for that peptide;
+`result.json` says whether the model failed outright or the peptide fell outside
+its supported length range.
+
+Results are cached by the hash of the cleaned sequences, so running three models
+today and five more tomorrow re-runs only the two new ones, while each run's
+output contains exactly the models that run asked for.
+
+
+## Web service API
+
+`battleamp` exposes a string-in, string-out Python API for the web front end.
+
+```python
+import battleamp
+
+battleamp.list_models()                                  # -> JSON str
+battleamp.validate(fasta_text, models=None)              # -> JSON str
+battleamp.score(fasta_text, models=None, unit="ug/ml")   # -> JSON str
+battleamp.to_tsv(result_json)                            # -> TSV str
+```
+
+`list_models()` and `validate()` return in milliseconds and are safe to call
+directly from a request handler. **`score()` takes minutes to hours** — it
+launches Snakemake, which builds conda environments and loads model weights onto
+a GPU — so it must be run from a background worker, never inside a request.
+
+Responses separate `messages` (short, human-readable, safe to show users) from
+`diagnostics` (Snakemake log paths and tails, which contain absolute server
+paths and belong to operators only).
+
+Reference request/response examples, generated from real model predictions, are
+in [`examples/`](examples/README.md) — start there when building the front end.
+
+### Deployment
+
+`score()` shells out to Snakemake, which in turn shells out to `conda`. Neither
+is usually on the PATH of a service worker, so set both explicitly:
+
+```bash
+# Snakemake normally lives in a virtualenv, not on PATH
+export BATTLEAMP_SNAKEMAKE=$HOME/.venvs/battleamp-snakemake/bin/snakemake
+
+# conda must be on PATH for --use-conda; a non-interactive shell will not
+# have sourced the conda-init block in ~/.bashrc
+source $HOME/miniforge3/etc/profile.d/conda.sh
+
+# profile/ runs on the local machine; slurm/ submits to the cluster queue
+export BATTLEAMP_PROFILE=slurm/
+```
+
+Without these, `score()` returns a clean `"Snakemake is not installed or not on
+PATH on the server."` error rather than crashing — but no models will run.
+
+```bash
+python scripts/generate_api_examples.py   # regenerate the examples
+python tests/test_parity.py               # guard against validation/MW drift
+```
 
 
 ## I want to reproduce the benchmark
