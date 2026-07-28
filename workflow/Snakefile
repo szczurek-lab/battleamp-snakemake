@@ -74,10 +74,16 @@ for model_name in config["models"]:
 MODEL_ENV_PATHS = {}
 for model_name in MODELS:
     env_path = MODELS_DIR / model_name / "environment.yaml"
-    if env_path.exists():
-        MODEL_ENV_PATHS[model_name] = str(env_path.resolve())
-    else:
-        MODEL_ENV_PATHS[model_name] = None  # no model-specific env
+    if not env_path.exists():
+        # Without an env spec, `conda:` resolves to None and the model's
+        # setup.sh / inference.sh run in whatever environment Snakemake
+        # itself lives in -- so `pip install` in setup.sh pollutes it.
+        raise FileNotFoundError(
+            f"Model environment not found: {env_path}\n"
+            f"Each model directory must contain an environment.yaml so that "
+            f"Snakemake can isolate it. See docs/adding_a_model.md."
+        )
+    MODEL_ENV_PATHS[model_name] = str(env_path.resolve())
 
 
 # ---------------------------------------------------------------------------
