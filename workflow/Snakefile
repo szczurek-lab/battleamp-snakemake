@@ -11,13 +11,31 @@ Usage:
     snakemake --profile profile/ --config run_models="ampeppy,amplify"
 """
 
+import os
 import re
 import yaml
 from pathlib import Path
 
-# Note: --use-conda is enforced via profile/config.yaml.
-# Each model rule carries a conda: directive; Snakemake will error on those
-# rules if --use-conda is not active.
+# Each model rule carries a conda: directive, but Snakemake silently ignores
+# those without --use-conda and runs every model in the ambient environment --
+# where their setup.sh pip installs then collide. Fail fast instead.
+from snakemake.settings.types import DeploymentMethod
+
+if DeploymentMethod.CONDA not in workflow.deployment_settings.deployment_method:
+    raise WorkflowError(
+        "This pipeline requires --use-conda. Run it via the profile:\n"
+        "    snakemake --profile profile/ [targets]"
+    )
+
+# With a conda env already active, `conda activate <model env>` replaces it on
+# PATH instead of prepending -- so a virtualenv layered on top stays in front
+# and every model runs against the venv's interpreter, not its own env.
+if os.environ.get("VIRTUAL_ENV") and os.environ.get("CONDA_PREFIX"):
+    raise WorkflowError(
+        "A conda environment and a virtualenv are both active; models would "
+        "silently run against the virtualenv instead of their own conda env.\n"
+        "Run 'conda deactivate' until no (base) prefix remains, then re-run."
+    )
 
 configfile: "config/config.yaml"
 
