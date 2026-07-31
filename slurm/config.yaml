@@ -12,6 +12,10 @@ snakefile: workflow/Snakefile
 executor: slurm
 jobs: 2                            # max simultaneous SLURM jobs
 
+# Inference rules request gpu=1; without a pool here they never schedule.
+resources:
+  - gpu=1
+
 use-conda: true
 keep-going: true
 conda-prefix: .snakemake/conda

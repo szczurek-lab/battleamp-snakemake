@@ -50,6 +50,11 @@ cd battleamp-snakemake
 git submodule update --init --recursive
 ```
 
+> **Keep submodules current.** Run `git submodule update --init --recursive`
+> after every `git pull`. Model setup re-runs on its own when a model's
+> `setup.sh` or `environment.yaml` changes, so a fix to a model environment
+> takes effect on the next run without any manual cleanup.
+
 > **Conda solver.** conda >= 23.x uses libmamba by default, which is required
 > to reliably solve the conflicting dependencies across models. If you are on an
 > older version, run `conda update -n base conda` first.

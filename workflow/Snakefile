@@ -105,6 +105,28 @@ for model_name in MODELS:
 
 
 # ---------------------------------------------------------------------------
+# Drop setup markers whose conda env is gone
+# ---------------------------------------------------------------------------
+#
+# setup.sh pip-installs into the env, so a rebuilt env needs setup re-run. The
+# env path is only known during deployment, after the DAG is built, so
+# model_setup records it and we reconcile here instead.
+
+# workflow.dryrun is still False here: it reads the executor plugin, which is
+# not set during parsing. output_settings is.
+if not getattr(workflow.output_settings, "dryrun", False):
+    for model_name in MODELS:
+        _done = OUTPUT_DIR / "setup" / model_name / ".setup_done"
+        _record = OUTPUT_DIR / "setup" / model_name / "env.txt"
+        if not (_done.exists() and _record.exists()):
+            continue
+        _prefix = _record.read_text().strip()
+        if _prefix and not Path(_prefix).is_dir():
+            logger.info(f"{model_name}: conda env gone, forcing re-setup")
+            _done.unlink()
+
+
+# ---------------------------------------------------------------------------
 # Expand variants
 # ---------------------------------------------------------------------------
 #

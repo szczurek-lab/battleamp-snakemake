@@ -242,3 +242,14 @@ git commit -m "Update my-model to v1.2.0"
 
 This pins the pipeline to the new commit. Other users pick up the change after
 running `git submodule update --init --recursive`.
+
+The setup marker `results/setup/my-model/.setup_done` depends on the model's
+`setup.sh` and `environment.yaml`, so the next run re-executes `setup.sh` for any
+model whose setup script or environment spec changed. To force it by hand:
+
+```bash
+rm -rf results/setup/my-model
+```
+
+Without this coupling a fix to `setup.sh` would be silently ignored on every
+machine that had already run the model once.
