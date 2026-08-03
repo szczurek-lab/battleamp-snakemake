@@ -55,6 +55,18 @@ rule run_inference:
         mkdir -p $(dirname "$LOG_ABS")
         export TF_FORCE_GPU_ALLOW_GROWTH=true
         export CUDA_VISIBLE_DEVICES=${{CUDA_VISIBLE_DEVICES:-0}}
+        # cuML's forest inference JIT-compiles at run time and needs the CUDA
+        # toolkit headers; without CUDA_PATH it aborts with "Failed to find CUDA
+        # headers". Only set when the conventional location exists, so this is a
+        # no-op on nodes that ship it differently.
+        if [ -z "${{CUDA_PATH:-}}" ]; then
+            for _cuda in /usr/local/cuda/targets/x86_64-linux /usr/local/cuda; do
+                if [ -f "$_cuda/include/cuda_runtime.h" ]; then
+                    export CUDA_PATH="$_cuda"
+                    break
+                fi
+            done
+        fi
         cd {params.model_dir} && \
         bash inference.sh \
             "$INPUT_ABS" \
@@ -99,6 +111,18 @@ rule run_multioutput_inference:
         """
         export TF_FORCE_GPU_ALLOW_GROWTH=true
         export CUDA_VISIBLE_DEVICES=${{CUDA_VISIBLE_DEVICES:-0}}
+        # cuML's forest inference JIT-compiles at run time and needs the CUDA
+        # toolkit headers; without CUDA_PATH it aborts with "Failed to find CUDA
+        # headers". Only set when the conventional location exists, so this is a
+        # no-op on nodes that ship it differently.
+        if [ -z "${{CUDA_PATH:-}}" ]; then
+            for _cuda in /usr/local/cuda/targets/x86_64-linux /usr/local/cuda; do
+                if [ -f "$_cuda/include/cuda_runtime.h" ]; then
+                    export CUDA_PATH="$_cuda"
+                    break
+                fi
+            done
+        fi
         INPUT_ABS=$(realpath {input.fasta})
         OUTPUT_ABS=$(realpath -m {output.tsv})
         LOG_ABS=$(realpath -m {log})
