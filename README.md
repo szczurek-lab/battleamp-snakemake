@@ -3,6 +3,9 @@
 A Snakemake pipeline for benchmarking antimicrobial peptide (AMP) prediction
 models against a curated set of classification and regression tasks.
 
+Preprint: [BATTLE-AMP: Benchmarking Antimicrobial Peptide Predictors](https://www.biorxiv.org/content/10.64898/2026.06.19.733349v1),
+bioRxiv, 2026. doi:[10.64898/2026.06.19.733349](https://doi.org/10.64898/2026.06.19.733349)
+
 ## Table of Contents
 
 - [Installation](#installation)
@@ -17,6 +20,8 @@ models against a curated set of classification and regression tasks.
   - [Output Structure](#output-structure)
   - [Running on an HPC Cluster](#running-on-an-hpc-cluster)
   - [Model Validation](#model-validation)
+- [Citation](#citation)
+- [License](#license)
 
 
 ## Installation
@@ -491,6 +496,36 @@ cat results/validation/validation_summary.tsv
 See [docs/validation.md](docs/validation.md) for details.
 
 
+## Citation
+
+If you use BATTLE-AMP, please cite:
+
+> Szymczak P, Bukała A, Zarzecki W, Sala M, Borišek J, Fadavi S, Olayo-Alarcon R,
+> Sroka J, Colomé-Tatché M, Gambin A, Müller CL, Setny P, Szczurek E.
+> BATTLE-AMP: Benchmarking Antimicrobial Peptide Predictors. bioRxiv, 2026.
+> doi:[10.64898/2026.06.19.733349](https://doi.org/10.64898/2026.06.19.733349)
+
+```bibtex
+@article{szymczak2026battleamp,
+  title   = {{BATTLE-AMP}: Benchmarking Antimicrobial Peptide Predictors},
+  author  = {Szymczak, Paulina and Buka{\l}a, Adriana and Zarzecki, Wojciech
+             and Sala, Micha{\l} and Bori{\v s}ek, Jure and Fadavi, Setareh
+             and Olayo-Alarcon, Roberto and Sroka, Jacek
+             and Colom{\'e}-Tatch{\'e}, Maria and Gambin, Anna
+             and M{\"u}ller, Christian L. and Setny, Piotr and Szczurek, Ewa},
+  journal = {bioRxiv},
+  year    = {2026},
+  doi     = {10.64898/2026.06.19.733349},
+  url     = {https://www.biorxiv.org/content/10.64898/2026.06.19.733349v1}
+}
+```
+
+Paulina Szymczak, Adriana Bukała and Wojciech Zarzecki contributed equally.
+
+
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
+
+The models under `models/` are third-party submodules, each covered by its own
+upstream licence.
