@@ -197,79 +197,90 @@ and are aggregated into `results/aggregated/summary.tsv`.
 
 ### One table, one row per peptide
 
-The paths above give you one file per model. To get a single table with **one
-row per peptide and one column per model**, use the `battleamp` package or its
-command-line front end:
+The paths above produce one file per model. Add `output=` to write a single
+table instead, one row per peptide and one column per model variant:
 
 ```bash
-# check the input before running anything (fast)
-python scripts/score_fasta.py --fasta my_peptides.fasta --validate-only
-
-# run selected models, MIC in uM, write scores.tsv + result.json
-python scripts/score_fasta.py --fasta my_peptides.fasta \
-    --models ampeppy,apex,sensexamp --unit uM --out-dir jobs/123
+snakemake --profile profile/ score \
+    --config fasta="/path/to/my_peptides.fasta" \
+             run_models="ampeppy,amplify,ampredmfa" \
+             output="/path/to/results.csv" \
+             unit="uM"
 ```
 
-Classifier columns are named `{variant}_prob`, regressor columns
-`{variant}_MIC_{unit}`. MIC values are converted to your chosen unit using each
-peptide's molecular weight, so models reporting in µM and µg/ml are directly
-comparable. An empty cell means that model produced no score for that peptide;
-`result.json` says whether the model failed outright or the peptide fell outside
-its supported length range.
+This writes two files:
 
-Results are cached by the hash of the cleaned sequences, so running three models
-today and five more tomorrow re-runs only the two new ones, while each run's
-output contains exactly the models that run asked for.
+| File | Contents |
+|---|---|
+| `results.csv` | `id`, `sequence`, then `{variant}_prob` or `{variant}_MIC_{unit}` |
+| `results.report.json` | per-model status, rejected peptides, `messages` for users, `diagnostics` for operators |
+
+`unit=` is optional (`ug/ml` or `uM`, default `benchmark_unit`). MIC values are
+converted per peptide by molecular weight, so models reporting in µM and µg/ml
+are comparable. The separator follows the file extension: `.csv` gives commas,
+anything else gives tabs.
+
+An empty cell means the model produced no score for that peptide. The report
+gives the reason: the model failed, the peptide was outside the model's length
+range, or the peptide was rejected before inference.
+
+Three properties are worth noting:
+
+- **The table is written even when models fail.** The profile sets `keep-going`,
+  so a failed model does not prevent the others from producing predictions. The
+  failed model's column is empty and `report.json` marks it `failed`. Judge a
+  run by `status` in the report, not by the Snakemake exit code.
+- **`output=` makes the dataset name a hash of the cleaned sequences.** The name
+  is otherwise the FASTA filename stem, so two different files both named
+  `peptides.fasta` would share cached predictions. Hashing prevents that, and
+  lets identical submissions reuse the same computation.
+- **Always pass the `score` target.** Without it Snakemake runs the full
+  benchmark.
 
 
 ## Web service API
 
-`battleamp` exposes a string-in, string-out Python API for the web front end.
+`--config output=` covers scoring. The `battleamp` package adds two functions a
+web front end needs before scoring starts.
 
 ```python
 import battleamp
 
-battleamp.list_models()                                  # -> JSON str
-battleamp.validate(fasta_text, models=None)              # -> JSON str
-battleamp.score(fasta_text, models=None, unit="ug/ml")   # -> JSON str
-battleamp.to_tsv(result_json)                            # -> TSV str
+battleamp.list_models()                       # JSON: models, variants, length limits
+battleamp.validate(fasta_text, models=None)   # JSON: per-peptide validity, model coverage
 ```
 
-`list_models()` and `validate()` return in milliseconds and are safe to call
-directly from a request handler. **`score()` takes minutes to hours** — it
-launches Snakemake, which builds conda environments and loads model weights onto
-a GPU — so it must be run from a background worker, never inside a request.
+Both return in milliseconds and are safe to call from an HTTP request handler.
+Use `list_models()` for the model picker and `validate()` to report bad input
+before spending GPU time.
 
-Responses separate `messages` (short, human-readable, safe to show users) from
+The package also exposes `score()`, which runs Snakemake and returns the same
+table as JSON. It takes minutes to hours, so call it from a background worker,
+never from a request handler.
+
+Responses separate `messages` (short, human-readable, safe to display) from
 `diagnostics` (Snakemake log paths and tails, which contain absolute server
-paths and belong to operators only).
+paths and are for operators).
 
-Reference request/response examples, generated from real model predictions, are
-in [`examples/`](examples/README.md) — start there when building the front end.
+Reference inputs and outputs generated from real predictions are in
+[`examples/`](examples/README.md).
 
 ### Deployment
 
-`score()` shells out to Snakemake, which in turn shells out to `conda`. Neither
-is usually on the PATH of a service worker, so set both explicitly:
+`score()` invokes Snakemake, which invokes `conda`. Neither is on the PATH of a
+typical service worker, so set both:
 
 ```bash
-# Snakemake normally lives in a virtualenv, not on PATH
 export BATTLEAMP_SNAKEMAKE=$HOME/.venvs/battleamp-snakemake/bin/snakemake
-
-# conda must be on PATH for --use-conda; a non-interactive shell will not
-# have sourced the conda-init block in ~/.bashrc
 source $HOME/miniforge3/etc/profile.d/conda.sh
-
-# profile/ runs on the local machine; slurm/ submits to the cluster queue
-export BATTLEAMP_PROFILE=slurm/
+export BATTLEAMP_PROFILE=slurm/     # or profile/ for a single machine
 ```
 
-Without these, `score()` returns a clean `"Snakemake is not installed or not on
-PATH on the server."` error rather than crashing — but no models will run.
+Without these, `score()` reports that Snakemake was not found and no model runs.
 
 ```bash
 python scripts/generate_api_examples.py   # regenerate the examples
-python tests/test_parity.py               # guard against validation/MW drift
+python tests/test_parity.py               # check validation and MW parity
 ```
 
 
@@ -482,10 +493,21 @@ To submit each pipeline rule as a separate SLURM job, install the executor
 plugin into the pipeline venv and use the bundled `slurm/` profile:
 
 ```bash
-pip install snakemake-executor-plugin-slurm
+pip install 'snakemake-executor-plugin-slurm>=2.7.1'
 snakemake --profile slurm/ score \
     --config score_datasets="[<your-dataset>]"
 ```
+
+> **Version 2.7.1 or later is required.** On 2.6.1 a GPU rule never reaches
+> `sbatch`: the workflow prints `Execute 1 jobs...` and then stalls with nothing
+> in `squeue`. Non-GPU rules submit normally, so the fault resembles a cluster
+> problem rather than a plugin one.
+>
+> 2.7.1 requires `numpy>=2.4.5`, and therefore newer scipy and scikit-learn.
+> This does not affect results: models run in their own conda environments, and
+> the only pipeline code importing those libraries is
+> `workflow/scripts/evaluate.py`. Every metric it computes is identical after
+> the upgrade.
 
 **Creating `slurm/config.yaml`.** The repository ships a template; copy and
 adapt it to your cluster before first use:
@@ -510,17 +532,29 @@ set-resources:
     mem_mb: 64000
     runtime: 720
     cpus_per_task: 8
-    slurm_extra: "'--gres=gpu:1'"
+    gres: "gpu:1"               # NOT slurm_extra: the plugin owns GRES
   run_multioutput_inference:
     mem_mb: 64000
     runtime: 720
     cpus_per_task: 8
-    slurm_extra: "'--gres=gpu:1'"
+    gres: "gpu:1"               # NOT slurm_extra: the plugin owns GRES
   model_setup:
     mem_mb: 16000
     runtime: 120
     cpus_per_task: 4
 ```
+
+**Request GPUs with `gres:`, not `slurm_extra:`.** The plugin sets GRES itself
+and rejects an override, so `slurm_extra: "--gres=gpu:1"` fails with *"The
+--generic-resources-(GRES) option is not allowed in the 'slurm_extra'
+parameter"*. On 2.6.1 the same setting stalls silently instead of reporting the
+error.
+
+**Some models require the CUDA toolkit headers.** cuML compiles kernels at run
+time and aborts with *"Failed to find CUDA headers"* unless `CUDA_PATH`
+specifies a directory containing `include/cuda_runtime.h`. The inference rules
+detect the usual locations. On many installations the headers are in
+`/usr/local/cuda/targets/<arch>/include` rather than `/usr/local/cuda/include`.
 
 `slurm_account` must be set explicitly. Without it, snakemake attempts to
 guess the account from `sacctmgr`, which can stall or pick the wrong account
