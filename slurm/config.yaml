@@ -37,13 +37,13 @@ set-resources:
     mem_mb: 128000
     runtime: 720
     cpus_per_task: 16
-    slurm_extra: "'--gres=gpu:1'"
+    gres: "gpu:1"
   run_multioutput_inference:
     slurm_partition: common
     mem_mb: 128000
     runtime: 720
     cpus_per_task: 16
-    slurm_extra: "'--gres=gpu:1'"
+    gres: "gpu:1"
   model_setup:
     slurm_partition: common
     mem_mb: 16000
