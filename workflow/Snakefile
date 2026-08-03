@@ -11,8 +11,10 @@ Usage:
     snakemake --profile profile/ --config run_models="ampeppy,amplify"
 """
 
+import json
 import os
 import re
+import sys
 import yaml
 from pathlib import Path
 
@@ -210,6 +212,82 @@ MULTIOUTPUT_MODEL_RE = _names_to_re(sorted(MULTIOUTPUT_MODELS.keys()))
 
 
 # ---------------------------------------------------------------------------
+# Aggregated output mode: --config output="/path/to/results.csv"
+# ---------------------------------------------------------------------------
+# Writes one aggregated table -- a row per peptide, a column per model variant --
+# to the given path once the run finishes, plus a sibling <stem>.report.json
+# saying which models failed and which peptides were rejected.
+#
+#   snakemake --profile profile/ score \
+#       --config fasta="/data/x.fasta" run_models="ampeppy,amplify" \
+#                output="/data/results.csv" unit="uM"
+#
+# The table is written by the onsuccess/onerror handlers at the bottom of this
+# file rather than by a rule, because a rule taking predictions.tsv as input
+# cannot run when a model fails -- and with keep-going, a failed model is
+# exactly the case the web service has to survive.
+#
+# Setting output= also switches the dataset name from the FASTA filename stem to a
+# hash of its cleaned sequences.  Two users uploading different files both named
+# peptides.fasta would otherwise share a dataset name, and the second would
+# silently receive the first one's cached predictions.
+
+_output_path = config.get("output", None)
+_output_unit = config.get("unit", config.get("benchmark_unit", "ug/ml"))
+
+if _output_path:
+    sys.path.insert(0, str(REPO_ROOT))
+    from battleamp import aggregate as _bamp_aggregate
+    from battleamp import api as _bamp_api
+    from battleamp import sequences as _bamp_sequences
+    from battleamp import units as _bamp_units
+
+    if _output_unit not in _bamp_units.VALID_UNITS:
+        raise ValueError(
+            f"\n\n"
+            f"  ERROR: Unknown unit '{_output_unit}' passed via --config unit=\n"
+            f"  Valid units: {', '.join(_bamp_units.VALID_UNITS)}\n"
+        )
+
+    if not config.get("fasta"):
+        raise ValueError(
+            f"\n\n"
+            f"  ERROR: --config output= also requires --config fasta=\n"
+            f"  The aggregated table is built for one uploaded FASTA.\n"
+        )
+
+    # Staging runs on dry runs too. It writes one small, content-addressed copy
+    # of the input -- a pipeline *input*, not an output -- and skipping it would
+    # make --dryrun both wrong and useless here: the DAG would be planned against
+    # the filename-stem dataset instead of the hashed one, and would then fail on
+    # the missing staged FASTA.
+    _output_src = Path(config["fasta"]).resolve()
+    if not _output_src.exists():
+        raise FileNotFoundError(
+            f"\n\n"
+            f"  ERROR: FASTA file not found: {_output_src}\n"
+        )
+    _output_accepted, _output_rejected = _bamp_sequences.classify_records(
+        _bamp_sequences.parse_fasta(_output_src.read_text())
+    )
+    if not _output_accepted:
+        raise ValueError(
+            f"\n\n"
+            f"  ERROR: No scorable sequences in {_output_src}\n"
+            f"  Every record was rejected (empty, gaps, D-amino acids or\n"
+            f"  non-standard residues). Check the file before running.\n"
+        )
+    _output_dataset, _output_staged = _bamp_api.stage_fasta(_output_accepted)
+    # Hand the staged copy to the fasta block below, so the dataset it
+    # registers is the content-addressed one.
+    config["fasta"] = str(_output_staged)
+    logger.info(
+        f"output mode: {len(_output_accepted)} sequences "
+        f"({len(_output_rejected)} rejected) -> dataset {_output_dataset}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # On-the-fly dataset: --config fasta="/path/to/sequences.fasta"
 # ---------------------------------------------------------------------------
 # Registers an unnamed FASTA as a temporary dataset without requiring a
@@ -322,7 +400,108 @@ rule all:
     input:
         f"{OUTPUT_DIR}/aggregated/summary.tsv",
 
+# The table is produced by a rule so that it is still written when every
+# prediction is already cached: handlers do not fire on a "Nothing to be done"
+# run, which for a web service is the common case of a second user submitting
+# peptides someone else already scored.
+#
+# The rule cannot be the whole story, though: its inputs are the per-model
+# predictions, so it is skipped entirely when a model fails. The onerror handler
+# below covers that. Between them every outcome writes a table except a failure
+# before any job ran, where nothing exists to tabulate.
+OUTPUT_TABLE = _output_path or f"{OUTPUT_DIR}/.output_table_disabled.csv"
+
+
+rule output_table:
+    """Write the aggregated per-peptide table (only requested when output= is set)."""
+    input:
+        ALL_PREDICTIONS,
+    output:
+        table = OUTPUT_TABLE,
+    run:
+        _write_output_path(True)
+
+
 rule score:
     """Run all models on the configured datasets (inference only, no evaluation)."""
     input:
-        ALL_PREDICTIONS,
+        ALL_PREDICTIONS + ([OUTPUT_TABLE] if _output_path else []),
+
+
+# ---------------------------------------------------------------------------
+# Aggregated output table (only when --config output= was given)
+# ---------------------------------------------------------------------------
+
+def _write_output_path(snakemake_ok):
+    """Write the aggregated table and its report, whatever the run did.
+
+    No-op unless --config output= was given.
+
+    Called from both onsuccess and onerror so the two paths cannot diverge.
+    A non-zero Snakemake exit is normal here: keep-going means one failed model
+    fails the workflow while the rest produced perfectly good predictions, and
+    those still have to reach the user.
+
+    Never raises. A bug in reporting must not be mistaken for a pipeline
+    failure, so problems are logged and swallowed.
+    """
+    if not _output_path:
+        return
+    try:
+        table_path = Path(_output_path)
+        table_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # _output_src, NOT config["fasta"]: the output= block above replaced the latter
+        # with the staged, already-cleaned copy. Validating that would report
+        # zero rejected records, hiding exactly the peptides the user needs to
+        # be told about.
+        raw_text = _output_src.read_text()
+        accepted, _ = _bamp_sequences.classify_records(
+            _bamp_sequences.parse_fasta(raw_text)
+        )
+        validation = json.loads(
+            _bamp_api.validate(raw_text, models=config["models"])
+        )
+        # NB: do not name a local `report` here -- Snakemake reserves `report`
+        # as a directive keyword and its parser rejects the assignment.
+        payload = _bamp_api.build_report(
+            dataset=_output_dataset,
+            model_names=config["models"],
+            unit=_output_unit,
+            validation=validation,
+            accepted=accepted,
+            proc={
+                "status": "ok" if snakemake_ok else "partial",
+                "command": "snakemake (in-process)",
+                "returncode": 0 if snakemake_ok else 1,
+                "stderr_tail": [],
+            },
+        )
+
+        table_path.write_text(
+            _bamp_aggregate.rows_to_delimited(
+                payload["columns"],
+                payload["rows"],
+                delimiter=_bamp_aggregate.delimiter_for(table_path),
+            )
+        )
+        sidecar = _bamp_aggregate.report_path_for(table_path)
+        sidecar.write_text(json.dumps(payload, indent=2))
+
+        logger.info(
+            f"table: {len(payload['rows'])} peptides x "
+            f"{len(payload['columns'])} model columns -> {table_path}"
+        )
+        logger.info(f"report: {sidecar} (status: {payload['status']})")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"web output failed: {type(e).__name__}: {e}")
+
+
+# onsuccess/onerror must sit at column 0: Snakemake only recognises them as
+# directives at the top level, so the output= guard lives inside the function.
+onsuccess:
+    _write_output_path(True)
+
+
+onerror:
+    _write_output_path(False)

@@ -88,7 +88,7 @@ def main():
     }
 
     for unit, suffix in (("ug/ml", ""), ("uM", "_uM")):
-        result = api._assemble_result(
+        report = api.build_report(
             dataset=DEMO_DATASET,
             model_names=DEMO_MODELS,
             unit=unit,
@@ -96,6 +96,7 @@ def main():
             accepted=accepted,
             proc=proc,
         )
+        result = json.dumps(report, indent=2)
         write(f"example_score{suffix}.json", result)
         write(f"example_score{suffix}.tsv", battleamp.to_tsv(result))
 

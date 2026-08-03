@@ -17,6 +17,7 @@ Run standalone (no pytest needed):
 """
 
 import ast
+import json
 import sys
 import tempfile
 from pathlib import Path
@@ -154,6 +155,71 @@ def test_multioutput_artefact_paths_match_the_pipeline():
     # single-variant model: everything lives under its own name
     assert variants["ampeppy"]["log_name"] == "ampeppy"
     assert variants["ampeppy"]["prefilter_variant"] == "ampeppy"
+
+
+def test_delimiter_and_report_path_follow_the_filename():
+    """output=out.csv must produce commas; anything else stays tab-separated."""
+    from battleamp import aggregate
+
+    assert aggregate.delimiter_for("/tmp/out.csv") == ","
+    assert aggregate.delimiter_for("/tmp/out.CSV") == ","
+    assert aggregate.delimiter_for("/tmp/out.tsv") == "\t"
+    assert aggregate.delimiter_for("/tmp/out.txt") == "\t"
+    assert aggregate.delimiter_for("/tmp/out") == "\t"
+
+    assert str(aggregate.report_path_for("/tmp/out.csv")) == "/tmp/out.report.json"
+    assert str(aggregate.report_path_for("/tmp/out.tsv")) == "/tmp/out.report.json"
+    assert str(aggregate.report_path_for("/tmp/out")) == "/tmp/out.report.json"
+
+
+def test_csv_and_tsv_render_the_same_table():
+    """Only the separator may differ between the two renderings."""
+    from battleamp import aggregate
+
+    columns = [{"name": "m_prob"}, {"name": "r_MIC_ugml"}]
+    rows = [
+        {"id": "a;b", "sequence": "KWK", "m_prob": 0.5, "r_MIC_ugml": None},
+        {"id": "c", "sequence": "GIGK", "m_prob": None, "r_MIC_ugml": 12.25},
+    ]
+    csv = aggregate.rows_to_delimited(columns, rows, delimiter=",")
+    tsv = aggregate.rows_to_tsv(columns, rows)
+
+    assert csv.replace(",", "\t") == tsv
+    # Unscored cells must be empty, not "None" or "nan".
+    assert csv.splitlines()[1] == "a;b,KWK,0.5,"
+    assert csv.splitlines()[2] == "c,GIGK,,12.25"
+
+
+def test_report_counts_rejected_records_from_the_raw_input():
+    """The report must describe the user's file, not the cleaned staging copy.
+
+    output= replaces config["fasta"] with a content-addressed copy of the *accepted*
+    sequences. Building the report from that copy silently reports zero
+    rejections, hiding the peptides the user most needs to hear about.
+    """
+    from battleamp import api
+
+    raw = (
+        ">good\nGIGKFLHSAKKFGKAFVGEIMNS\n"
+        ">dup\nGIGKFLHSAKKFGKAFVGEIMNS\n"
+        ">bad_daa\nGIGkFLHSAKKF\n"
+        ">bad_x\nGIGKFLHSAXKF\n"
+    )
+    validation = json.loads(api.validate(raw, models=["example-model"]))
+    assert validation["n_records"] == 4, validation["n_records"]
+    assert validation["n_sequences"] == 1, validation["n_sequences"]
+    assert len(validation["rejected"]) == 3
+
+    # The duplicate keeps its header on the surviving row.
+    assert validation["sequences"][0]["ids"] == ["good", "dup"]
+
+    # Staging deliberately drops all of that -- which is why the report must be
+    # built from the raw text.
+    accepted = [(s["sequence"], s["ids"]) for s in validation["sequences"]]
+    staged = sequences.to_fasta(accepted)
+    staged_validation = json.loads(api.validate(staged, models=["example-model"]))
+    assert staged_validation["n_records"] == 1
+    assert staged_validation["rejected"] == []
 
 
 def test_headerless_input_is_rejected_clearly():

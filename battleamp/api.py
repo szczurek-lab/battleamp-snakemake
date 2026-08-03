@@ -240,11 +240,11 @@ def score(fasta_text, models=None, unit="ug/ml", timeout=None, cores=None):
         })
 
     accepted = [(s["sequence"], s["ids"]) for s in validation["sequences"]]
-    dataset, fasta_path = _stage_fasta(accepted)
+    dataset, fasta_path = stage_fasta(accepted)
 
     proc = _run_snakemake(fasta_path, model_names, timeout=timeout, cores=cores)
 
-    return _assemble_result(
+    return _dumps(build_report(
         dataset=dataset,
         model_names=model_names,
         unit=unit,
@@ -252,16 +252,25 @@ def score(fasta_text, models=None, unit="ug/ml", timeout=None, cores=None):
         accepted=accepted,
         proc=proc,
         timeout=timeout,
-    )
+    ))
 
 
-def _assemble_result(dataset, model_names, unit, validation, accepted, proc,
-                     timeout=None):
-    """Turn finished pipeline output into the JSON payload score() returns.
+def build_report(dataset, model_names, unit, validation, accepted, proc,
+                 timeout=None):
+    """Assemble the result payload from pipeline output already on disk.
 
-    Split out from score() so that scripts/generate_api_examples.py can build
-    the documented example from real on-disk predictions without re-running the
-    models, and so the example is guaranteed to match the real response shape.
+    Returns a dict (score() serialises it; the Snakefile's output_table rule writes
+    parts of it to separate files).
+
+    This is the single place where predictions become a user-facing answer.
+    Both entry points go through it:
+
+      score()            stages the FASTA, runs Snakemake, then calls this
+      --config output=... Snakemake has already run; the output_table rule
+                         handler calls this directly
+
+    Keeping one implementation is what stops the two front doors from
+    disagreeing about status, messages or column layout.
     """
     variants = registry.load_variants(model_names)
     columns, rows, model_report = aggregate.build_scores(
@@ -318,7 +327,7 @@ def _assemble_result(dataset, model_names, unit, validation, accepted, proc,
     else:
         status = "ok"
 
-    return _dumps({
+    return {
         "status": status,
         "dataset": dataset,
         "unit": unit,
@@ -339,7 +348,7 @@ def _assemble_result(dataset, model_names, unit, validation, accepted, proc,
                 for v, e in model_report.items() if e.get("log_tail")
             },
         },
-    })
+    }
 
 
 def to_tsv(result_json):
@@ -352,7 +361,7 @@ def to_tsv(result_json):
 # Internals
 # ---------------------------------------------------------------------------
 
-def _stage_fasta(accepted):
+def stage_fasta(accepted):
     """Write cleaned sequences to a content-addressed FASTA. Returns (name, path).
 
     The dataset name is the hash of the cleaned sequences, not the uploaded

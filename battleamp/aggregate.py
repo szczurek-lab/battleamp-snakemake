@@ -246,17 +246,42 @@ def build_scores(dataset, variants, results_dir, unit="ug/ml", sequences=None):
     return columns, rows_out, model_report
 
 
-def rows_to_tsv(columns, rows):
-    """Render the table as TSV text. Empty cells for unscored peptides."""
+def rows_to_delimited(columns, rows, delimiter="\t"):
+    """Render the table as delimited text. Empty cells for unscored peptides.
+
+    No quoting is applied: peptide sequences are amino acid letters, variant
+    names are pipeline identifiers, and FASTA ids are joined with ';'. None of
+    those can contain a comma or a tab.
+    """
     header = ["id", "sequence"] + [c["name"] for c in columns]
-    lines = ["\t".join(header)]
+    lines = [delimiter.join(header)]
     for row in rows:
         cells = [row.get("id", ""), row["sequence"]]
         for col in columns:
             value = row.get(col["name"])
             cells.append("" if value is None else _format_number(value))
-        lines.append("\t".join(cells))
+        lines.append(delimiter.join(cells))
     return "\n".join(lines) + "\n"
+
+
+def rows_to_tsv(columns, rows):
+    """Render the table as TSV text."""
+    return rows_to_delimited(columns, rows, delimiter="\t")
+
+
+def delimiter_for(path):
+    """Field separator implied by a filename: ',' for .csv, tab otherwise.
+
+    The workflow's own writers are all tab-separated, but the web service asks
+    for .csv, so the extension decides rather than one of them having to lose.
+    """
+    return "," if str(path).lower().endswith(".csv") else "\t"
+
+
+def report_path_for(path):
+    """Sibling report path for a table: /a/b/out.csv -> /a/b/out.report.json."""
+    p = Path(path)
+    return p.with_suffix(".report.json") if p.suffix else Path(str(p) + ".report.json")
 
 
 def _format_number(value):
