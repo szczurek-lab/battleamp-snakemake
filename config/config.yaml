@@ -51,6 +51,8 @@ datasets:
     sequences: datasets/slay/sequences.fasta
   pyelonephritis-borgards:
     sequences: datasets/pyelonephritis-borgards/sequences.fasta
+  holdout-2026:
+    sequences: datasets/holdout-2026/sequences.fasta
 
 
 
@@ -375,4 +377,90 @@ tasks:
     type: regression
     dataset: deep-amp
     labels: datasets/deep-amp/task_regression_grampos.tsv
+    model_type: regressor
+
+  # === Holdout-2026: temporal generalization ===
+  # DBAASP peptides curated after the January 2025 snapshot every other dataset
+  # derives from, so no benchmarked model can have trained on them. Task names
+  # mirror their battleamp-all counterparts for direct comparison.
+  holdout2026_broad_activity:
+    type: classification
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_broad_activity.tsv
+    model_type:
+      - classifier
+      - regressor
+  holdout2026_gram_minus:
+    type: classification
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_gram_minus.tsv
+    model_type:
+      - classifier
+      - regressor
+  holdout2026_gram_plus:
+    type: classification
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_gram_plus.tsv
+    model_type:
+      - classifier
+      - regressor
+  holdout2026_species_ecoli:
+    type: classification
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_species_ecoli.tsv
+    model_type:
+      - classifier
+      - regressor
+  holdout2026_species_saureus:
+    type: classification
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_species_saureus.tsv
+    model_type:
+      - classifier
+      - regressor
+  holdout2026_species_paeruginosa:
+    type: classification
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_species_paeruginosa.tsv
+    model_type:
+      - classifier
+      - regressor
+  holdout2026_species_kpneumoniae:
+    type: classification
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_species_kpneumoniae.tsv
+    model_type:
+      - classifier
+      - regressor
+  holdout2026_species_abaumannii:
+    type: classification
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_species_abaumannii.tsv
+    model_type:
+      - classifier
+      - regressor
+  holdout2026_regression_ecoli:
+    type: regression
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_mic_ecoli.tsv
+    model_type: regressor
+  holdout2026_regression_saureus:
+    type: regression
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_mic_saureus.tsv
+    model_type: regressor
+  holdout2026_regression_paeruginosa:
+    type: regression
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_mic_paeruginosa.tsv
+    model_type: regressor
+  holdout2026_regression_kpneumoniae:
+    type: regression
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_mic_kpneumoniae.tsv
+    model_type: regressor
+  holdout2026_regression_abaumannii:
+    type: regression
+    dataset: holdout-2026
+    labels: datasets/holdout-2026/labels_mic_abaumannii.tsv
     model_type: regressor
