@@ -1,5 +1,13 @@
-# Pipeline outputs
-results/
+# Pipeline outputs. Predictions and per-task metrics are large and regenerable,
+# so only the aggregated tables are tracked: they are the experimental results a
+# reader needs to check the paper without rerunning the benchmark.
+results/*
+!results/aggregated/
+results/aggregated/*
+!results/aggregated/*.tsv
+!results/generalization/
+results/generalization/*
+!results/generalization/*.tsv
 
 # Figures — PDFs are regenerable from .py scripts; only PNGs are tracked
 figures/*.pdf

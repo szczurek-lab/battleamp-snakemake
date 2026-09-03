@@ -1,0 +1,12 @@
+model	n_train	n_matched_against	derivation
+ampeppy	6536	9537	3,268 positives and a 3,268 negative subsample; which of the two shipped subsamples produced the checkpoint is unrecorded, so both are matched
+amplify	6676	6676	balanced model, which is the deployed one
+ampredictor	2952	2952	train plus validation, the latter driving early stopping
+ampredmfa	11320	11320	full pool; the shipped checkpoint records neither trial nor fold
+ampscanner	2132	2132	train and validation merged, as the shipped FULL_MODEL weights imply; test held out
+apex	1388	1388	cross-validation group; the independent split is held out
+deep-amp	12593	12593	up to 48 residues (code/utils.py chopping); union of the four variants; generator and toxicity data excluded
+hydramp-amp-classifier	11131	36893	positives up to 25 residues; negatives are random fragments of UniProt sequences drawn at training time, so the full source pool is matched instead
+hydramp-mic-classifier	3444	29206	positives up to 25 residues; negatives are random fragments of UniProt sequences drawn at training time, so the full source pool is matched instead
+mbc-attention	3929	3929	whole_train.mdl covers all of EC.csv
+sensexamp	20587	20587	training splits of the three benchmarked variants

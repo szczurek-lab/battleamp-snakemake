@@ -1,0 +1,14 @@
+variant	total_wall_s	max_peak_rss_mb	n_datasets	mean_wall_s
+sensexamp	64033.42	40482.43	8	8004.1775
+deep-amp	2672.05	7939.52	8	334.00625
+amplify	2482.62	15719.77	8	310.3275
+mbc-attention	1626.89	5541.49	8	203.36125
+ampeppy	1039.15	3179.99	8	129.89375
+apex	927.04	1404.55	8	115.88
+ampscanner	912.28	1578.86	8	114.035
+ampredictor	613.27	33586.68	7	87.61
+mole-amp	535.06	49571.4	7	76.43714285714285
+ampredmfa	468.27	7347.89	8	58.53375
+hydramp-amp-classifier	364.62	673.08	8	45.5775
+hydramp-mic-classifier	312.72	627.17	8	39.09
+example-model	11.89	33.69	8	1.48625
