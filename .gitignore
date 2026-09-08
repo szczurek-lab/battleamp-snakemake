@@ -8,6 +8,9 @@ results/aggregated/*
 !results/generalization/
 results/generalization/*
 !results/generalization/*.tsv
+!results/unit_comparison/
+results/unit_comparison/*
+!results/unit_comparison/*.tsv
 
 # Figures — PDFs are regenerable from .py scripts; only PNGs are tracked
 figures/*.pdf

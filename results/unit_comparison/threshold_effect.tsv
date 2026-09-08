@@ -1,0 +1,3 @@
+task	n	mw_min	mw_max	len_min	len_max	peptide_spearman	reclassified_at_8uM	reclassified_at_8uM_pct	reclassified_at_16uM	reclassified_at_16uM_pct	reclassified_at_32uM	reclassified_at_32uM_pct
+regression_ecoli25922	2535	461	9759	3	87	0.9678	511	20.16	219	8.64	275	10.85
+regression_saureus25923	1570	461	8428	3	75	0.9737	269	17.13	102	6.5	125	7.96
