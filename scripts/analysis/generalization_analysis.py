@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Generalization analysis: training-data overlap and its effect on every task.
 
 Evaluates every benchmarked variant on three versions of each task:
@@ -15,21 +16,35 @@ row counts: most apply a length filter or subsample, so the file row count
 overstates what the released checkpoint saw. The derivation for each model is
 recorded in TRAINING_SETS below and echoed into the output.
 
-Usage:
+Prerequisites
+-------------
+    results/inference/ must be populated, which the pipeline produces with
+    ``snakemake --profile profile/ score``.
+
+Usage
+-----
     python scripts/analysis/generalization_analysis.py
+
+    # Restrict to selected tasks
+    python scripts/analysis/generalization_analysis.py --tasks broad_activity
+
+Outputs
+-------
+    training_sets.tsv            per model: training set size and how it was derived
+    generalization_metrics.tsv   per variant, task and evaluation set: every metric
 """
 import argparse
-import glob
-import json
 import os
 import sys
-import types
 
 import pandas as pd
 import yaml
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 M = os.path.join(REPO, "models")
+sys.path.insert(0, os.path.join(REPO, "workflow", "scripts"))
+
+from evaluate import evaluate_task
 
 
 # --------------------------------------------------------------------------
@@ -150,27 +165,26 @@ def variant_index(cfg):
 
 
 def evaluate(cfg, variant, vtype, task, labels_path, out_path):
-    """Run workflow/scripts/evaluate.py with rule evaluate_task's parameters."""
-    src_path = os.path.join(REPO, "workflow/scripts/evaluate.py")
-    with open(src_path) as fh:
-        src = fh.read()
-    tc = dict(cfg["tasks"][task])
-    tc["labels"] = labels_path
-    ns = types.SimpleNamespace
-    sm = ns(
-        input=ns(predictions=f"results/inference/{variant}/{tc['dataset']}/predictions.tsv",
-                 labels=labels_path, validation=None),
-        output=ns(metrics=out_path),
-        params=ns(task_config=tc, variant_type=vtype,
-                  sequence_column=cfg.get("sequence_column", "sequence"),
-                  benchmark_unit=cfg.get("benchmark_unit", "ug/ml"),
-                  activity_thresholds=cfg["activity_thresholds"],
-                  mic_clamp=cfg.get("mic_clamp")),
-    )
+    """Score one variant on one task with rule evaluate_task's parameters.
+
+    Reusing the pipeline's own evaluation keeps these numbers comparable to
+    the published ones.
+    """
+    task_config = dict(cfg["tasks"][task])
+    task_config["labels"] = labels_path
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    exec(compile(src, src_path, "exec"), {"__name__": "__evaluate__", "snakemake": sm})
-    with open(out_path) as fh:
-        return json.load(fh)["metrics"]
+    report = evaluate_task(
+        predictions_path=f"results/inference/{variant}/{task_config['dataset']}/predictions.tsv",
+        labels_path=labels_path,
+        output_path=out_path,
+        task_config=task_config,
+        variant_type=vtype,
+        sequence_column=cfg.get("sequence_column", "sequence"),
+        benchmark_unit=cfg.get("benchmark_unit", "ug/ml"),
+        activity_thresholds=cfg["activity_thresholds"],
+        mic_clamp=cfg.get("mic_clamp"),
+    )
+    return report["metrics"]
 
 
 # --------------------------------------------------------------------------

@@ -571,26 +571,34 @@ def regressor_to_classification(
 # ---------------------------------------------------------------------------
 
 
-def main(snakemake):
-    predictions_path = snakemake.input.predictions
-    labels_path = snakemake.input.labels
-    output_path = snakemake.output.metrics
+def evaluate_task(
+    predictions_path,
+    labels_path,
+    output_path,
+    task_config,
+    variant_type,
+    sequence_column="sequence",
+    benchmark_unit="ug/ml",
+    activity_thresholds=None,
+    mic_clamp=None,
+):
+    """Score one variant on one task, write metrics.json and return the report.
 
-    task_config = snakemake.params.task_config
-    seq_col = snakemake.params.sequence_column
-    benchmark_unit = snakemake.params.benchmark_unit
+    Kept separate from main() so analysis scripts can reuse the pipeline's own
+    evaluation instead of reimplementing it.
 
-    # Activity thresholds for regressor-on-classification evaluation
-    activity_thresholds = snakemake.params.activity_thresholds
+    variant_type is what the model produces ("classifier" or "regressor");
+    task_config["type"] is what the task expects.  mic_clamp may be None to
+    disable clamping.
+    """
+    seq_col = sequence_column
+    if activity_thresholds is None:
+        activity_thresholds = {"active": 32, "inactive": 128, "unit": "ug/ml"}
     active_threshold = activity_thresholds["active"]
     inactive_threshold = activity_thresholds["inactive"]
     threshold_unit = activity_thresholds["unit"]
 
-    # MIC clamping config (may be None to disable)
-    mic_clamp = snakemake.params.mic_clamp
-
-    task_type = task_config["type"]           # what the task expects
-    variant_type = snakemake.params.variant_type  # what the model produces
+    task_type = task_config["type"]
 
     # Load data
     pred_df = pd.read_csv(predictions_path, sep="\t")
@@ -621,7 +629,7 @@ def main(snakemake):
         )
         with open(output_path, "w") as f:
             json.dump(report, f, indent=2)
-        return
+        return report
 
     # Get requested metrics or use defaults
     requested_metrics = task_config.get("metrics", [])
@@ -650,7 +658,7 @@ def main(snakemake):
                 report["metrics"] = {m: None for m in requested_metrics}
                 with open(output_path, "w") as f:
                     json.dump(report, f, indent=2)
-                return
+                return report
 
             sequences = merged[seq_col].values
             y_pred, y_prob, keep_mask, n_grey = regressor_to_classification(
@@ -735,7 +743,7 @@ def main(snakemake):
             )
             with open(output_path, "w") as f:
                 json.dump(report, f, indent=2)
-            return
+            return report
 
         # Regressor on regression task (standard path).
 
@@ -748,7 +756,7 @@ def main(snakemake):
             report["metrics"] = {}
             with open(output_path, "w") as f:
                 json.dump(report, f, indent=2)
-            return
+            return report
         y_pred = mic_values
 
         # --- Ground truth MIC ---
@@ -766,7 +774,7 @@ def main(snakemake):
             report["metrics"] = {}
             with open(output_path, "w") as f:
                 json.dump(report, f, indent=2)
-            return
+            return report
 
         if true_unit_col:
             y_true, n_true_conv = harmonize_mic_units(
@@ -821,5 +829,23 @@ def main(snakemake):
         file=sys.stderr,
     )
 
+    return report
 
-main(snakemake)
+
+def main(snakemake):
+    evaluate_task(
+        predictions_path=snakemake.input.predictions,
+        labels_path=snakemake.input.labels,
+        output_path=snakemake.output.metrics,
+        task_config=snakemake.params.task_config,
+        variant_type=snakemake.params.variant_type,
+        sequence_column=snakemake.params.sequence_column,
+        benchmark_unit=snakemake.params.benchmark_unit,
+        activity_thresholds=snakemake.params.activity_thresholds,
+        mic_clamp=snakemake.params.mic_clamp,
+    )
+
+
+# Injected by Snakemake's script: directive; absent when imported.
+if "snakemake" in globals():
+    main(snakemake)
