@@ -44,8 +44,10 @@ tmp/
 # Caches
 __pycache__/
 .ipynb_checkpoints/
-figure4_cache/
-figure_supp_mic_cache/
+
+# figure4_cache/ and figure_supp_mic_cache/ are deliberately NOT ignored: they
+# are the only inputs standing between a fresh clone and the paper figures.
+# Raw per-model predictions stay out of git and live on Zenodo (see README).
 
 # Large data archives (tracked via DVC or external)
 *.tar.gz
