@@ -18,6 +18,11 @@
 #   variants      - list of benchmark sub-models (empty list if the model has
 #                   only one variant identical to the model name)
 #   reference     - short citation or URL for the original publication
+#   excluded      - true if the model was surveyed but left out of the final
+#                   benchmark. Excluded models are listed separately in the
+#                   README and are absent from config/config.yaml, so the
+#                   pipeline and the web service both refuse to run them.
+#   excluded_reason - why, in one clause. Required when excluded is true.
 
 models:
 
@@ -79,6 +84,8 @@ models:
     variants:
       - MolE-max
     reference: "Borisek et al., 2024"
+    excluded: true
+    excluded_reason: "classified all benchmark sequences as non-AMP"
 
   - name: sAMP-VGG16
     type: classifier
@@ -88,6 +95,8 @@ models:
     gpu_required: true
     variants: []
     reference: "Lin et al., 2021"
+    excluded: true
+    excluded_reason: "classified virtually all benchmark sequences as AMP"
 
   - name: SenseXAMP
     type: classifier
@@ -120,6 +129,8 @@ models:
       - APEX-Ecoli
       - APEX-Saureus
       - APEX-Kpneumoniae
+      - APEX-Abaumannii
+      - APEX-Paeruginosa
       - APEX-min
     reference: "Yan et al., 2022"
 

@@ -13,6 +13,12 @@ models:
   - hydramp-amp-classifier
   - hydramp-mic-classifier
   - apex
+# MolE stays commented out on purpose. It classified every benchmark sequence as
+# non-AMP, so it was excluded from the final benchmark (see models/registry.yaml
+# and the paper). Keeping it out of this list is what stops the pipeline, the
+# `score` command and the web service from offering it: both run_models= and
+# battleamp.score(models=...) validate against this list. Do not re-enable it
+# without also updating the registry and the manuscript.
 #  - mole-amp
   - mbc-attention
   - sensexamp

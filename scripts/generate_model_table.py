@@ -40,12 +40,23 @@ def length_str(min_len, max_len):
 
 
 def generate_table(models):
+    """Render the model table.
+
+    Models marked ``excluded`` in the registry were surveyed but left out of the
+    final benchmark, and are absent from config/config.yaml so neither the
+    pipeline nor the web service will run them. They are listed separately
+    rather than dropped, because the paper reports why each was excluded and
+    their predictions are part of the published record.
+    """
+    available = [m for m in models if not m.get("excluded")]
+    excluded = [m for m in models if m.get("excluded")]
+
     lines = []
     lines.append("| Model | Variants | Type | Framework | Accepted lengths | GPU |")
     lines.append("|-------|----------|------|-----------|------------------|-----|")
 
-    classifiers = [m for m in models if m["type"] == "classifier"]
-    regressors = [m for m in models if m["type"] == "regressor"]
+    classifiers = [m for m in available if m["type"] == "classifier"]
+    regressors = [m for m in available if m["type"] == "regressor"]
 
     for group in [classifiers, regressors]:
         for m in group:
@@ -59,10 +70,22 @@ def generate_table(models):
 
     n_classifiers = len(classifiers)
     n_regressors = len(regressors)
-    n_variants = sum(max(len(m.get("variants", [])), 1) for m in models)
+    n_variants = sum(max(len(m.get("variants", [])), 1) for m in available)
     lines.append("")
     lines.append(f"Total: {n_classifiers} classifiers, {n_regressors} regressors, "
                  f"{n_variants} variants")
+
+    if excluded:
+        lines.append("")
+        lines.append("**Surveyed but excluded.** These are not in "
+                     "`config/config.yaml`, so the pipeline and the web service "
+                     "both refuse to run them.")
+        lines.append("")
+        lines.append("| Model | Type | Framework | Reason for exclusion |")
+        lines.append("|-------|------|-----------|----------------------|")
+        for m in excluded:
+            lines.append(f"| {m['name']} | {m['type']} | {m.get('framework', '')} | "
+                         f"{m.get('excluded_reason', 'not reported')} |")
 
     return "\n".join(lines)
 
