@@ -15,8 +15,32 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from figure_config import *
 
-TABLE = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("overlap_table.tsv")
-df = pd.read_csv(TABLE, sep="\t").set_index("variant")
+# Built from results/generalization/generalization_metrics.tsv, which is tracked,
+# so this figure regenerates from a clone. Pass a pre-pivoted table as argv[1] to
+# override. The source is long format (one row per variant, task and evaluation
+# set); this pivots the broad_activity rows into the wide layout the panels want:
+# one row per variant, columns <set>_<metric>, plus overlap_pct.
+GEN_FILE = RESULTS_ROOT / "generalization" / "generalization_metrics.tsv"
+
+
+def _build_overlap_table():
+    g = pd.read_csv(GEN_FILE, sep="\t")
+    g = g[g["task"] == "broad_activity"].copy()
+    # LR+ = TPR/FPR. FPR of zero means no false positives, an infinite ratio;
+    # the panel caps it at LR_CAP and flags the bar, so inf is the honest value.
+    g["lr"] = np.where(g["fpr"] > 0, g["tpr"] / g["fpr"], np.inf)
+    wide = g.pivot(index="variant", columns="evaluation_set",
+                   values=["mcc", "lr", "fpr"])
+    wide.columns = [f"{s}_{metric}" for metric, s in wide.columns]
+    # overlap_pct is a property of the variant, identical across sets.
+    wide["overlap_pct"] = g.groupby("variant")["overlap_pct"].first()
+    return wide
+
+
+if len(sys.argv) > 1:
+    df = pd.read_csv(Path(sys.argv[1]), sep="\t").set_index("variant")
+else:
+    df = _build_overlap_table()
 order = [m for m in ALL_MODELS if m in df.index]
 
 SETS = [("battleamp", "BattleAMP", 1.00),
