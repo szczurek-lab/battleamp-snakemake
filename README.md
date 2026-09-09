@@ -8,12 +8,16 @@ bioRxiv, 2026. doi:[10.64898/2026.06.19.733349](https://doi.org/10.64898/2026.06
 
 ## Table of Contents
 
+- [Overview](#overview)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [I want to score my own peptides](#i-want-to-score-my-own-peptides)
 - [Web service API](#web-service-api)
-- [I want to reproduce the benchmark](#i-want-to-reproduce-the-benchmark)
-- [I want to add my own model](#i-want-to-add-my-own-model)
+- [I want to reproduce the manuscript figures and tables](#i-want-to-reproduce-the-manuscript-figures-and-tables)
+  - [Regenerating the figures](#regenerating-the-figures)
+  - [Recomputing the metrics](#recomputing-the-metrics)
+- [I want to rerun the benchmark](#i-want-to-rerun-the-benchmark)
+- [I want to add my own model, dataset or task](#i-want-to-add-my-own-model-dataset-or-task)
 - [Reference](#reference)
   - [Available Models](#available-models)
   - [Evaluation Metrics](#evaluation-metrics)
@@ -23,6 +27,22 @@ bioRxiv, 2026. doi:[10.64898/2026.06.19.733349](https://doi.org/10.64898/2026.06
   - [Model Validation](#model-validation)
 - [Citation](#citation)
 - [License](#license)
+
+
+## Overview
+
+Reproducing the manuscript is independent of running the benchmark. It is the
+only task here that requires neither the model code nor a GPU.
+
+| Task | Requirements |
+|---|---|
+| [Reproduce the manuscript figures and tables](#i-want-to-reproduce-the-manuscript-figures-and-tables) | Python and pip |
+| [Rerun the benchmark over all models](#i-want-to-rerun-the-benchmark) | conda, model weights, GPU, days of compute |
+| [Score a peptide library](#i-want-to-score-my-own-peptides) | conda, model weights, GPU |
+| [Add a model, dataset or task](#i-want-to-add-my-own-model-dataset-or-task) | conda, model weights, GPU |
+| [Call the pipeline from a web service](#web-service-api) | as for scoring a peptide library |
+
+Every task except the first requires the installation described below.
 
 
 ## Installation
@@ -92,12 +112,14 @@ results/inference/example-model/example-dataset/predictions.tsv
 
 ## I want to score my own peptides
 
-Run all integrated models on your sequences and get AMP/non-AMP predictions
-(classifiers) and estimated MIC values (regressors).
+Run all integrated models on your sequences to obtain AMP/non-AMP predictions
+from the classifiers and estimated minimum inhibitory concentration (MIC)
+values from the regressors.
 
-### Quickest path: pass a FASTA directly
+### Passing a FASTA directly
 
-No config changes needed. The dataset name is taken from the filename stem.
+This path needs no change to the configuration. The dataset name is taken from
+the filename stem.
 
 ```bash
 # All models
@@ -108,7 +130,8 @@ snakemake --profile profile/ score \
     --config fasta="/path/to/my_peptides.fasta" run_models="ampeppy,amplify,ampredmfa"
 ```
 
-Predictions land in `results/inference/{model_variant}/my_peptides/predictions.tsv`.
+Predictions are written to
+`results/inference/{model_variant}/my_peptides/predictions.tsv`.
 
 Two constraints apply: the filename stem must not clash with a dataset name
 already defined in `config/config.yaml`, and evaluation against ground-truth
@@ -150,7 +173,7 @@ KFLQSARKILGK   4.2    ug/ml
 GIKLSARKVFPA   16.0   uM
 ```
 
-Mixed units within the same file are supported; each row is converted
+Mixed units within the same file are supported. Each row is converted
 individually to the `benchmark_unit` set in `config/config.yaml`.
 
 **2. Register in `config/config.yaml`:**
@@ -184,8 +207,8 @@ cat results/aggregated/summary.tsv
 
 To restrict to specific models without editing the config, append
 `--config run_models="ampeppy,amplify"`. Model names must match entries in the
-`models:` list in `config/config.yaml`; an unrecognised name errors immediately
-with a list of valid options.
+`models:` list in `config/config.yaml`. An unrecognised name errors immediately
+and lists the valid options.
 
 ### Output format
 
@@ -224,7 +247,7 @@ An empty cell means the model produced no score for that peptide. The report
 gives the reason: the model failed, the peptide was outside the model's length
 range, or the peptide was rejected before inference.
 
-Three properties are worth noting:
+Three properties of this output:
 
 - **The table is written even when models fail.** The profile sets `keep-going`,
   so a failed model does not prevent the others from producing predictions. The
@@ -251,8 +274,8 @@ battleamp.validate(fasta_text, models=None)   # JSON: per-peptide validity, mode
 ```
 
 Both return in milliseconds and are safe to call from an HTTP request handler.
-Use `list_models()` for the model picker and `validate()` to report bad input
-before spending GPU time.
+Use `list_models()` for the model picker and `validate()` to reject invalid
+input before inference starts.
 
 The package also exposes `score()`, which runs Snakemake and returns the same
 table as JSON. It takes minutes to hours, so call it from a background worker,
@@ -284,10 +307,78 @@ python tests/test_parity.py               # check validation and MW parity
 ```
 
 
-## I want to reproduce the benchmark
+## I want to reproduce the manuscript figures and tables
 
-The full benchmark runs all models in `config/config.yaml` across all defined
-datasets and tasks.
+Every figure and table in the manuscript is derived from result tables tracked
+in this repository. Reproducing them is independent of running the benchmark.
+The Snakemake installation described above is not needed, and neither are the
+model submodules, the model weights or a GPU.
+
+### Regenerating the figures
+
+Every figure in the paper is plotted from result tables tracked in this
+repository. Regenerating them needs no model submodules, no conda environments
+and no GPU.
+
+```bash
+git clone https://github.com/szczurek-lab/battleamp-snakemake.git
+cd battleamp-snakemake
+pip install -r requirements-figures.txt
+bash scripts/reproduce_figures.sh
+```
+
+Omit `--recursive` when cloning. The submodules carry the model weights and are
+needed only for inference.
+
+The script prints one line per figure and writes `.png` and `.pdf` into
+`figures/`, overwriting the committed copies. Expect small differences from
+Matplotlib version drift even when the underlying numbers are unchanged.
+
+The tables the figures are drawn from can also be read directly.
+
+| File | Contents |
+|---|---|
+| `results/aggregated/classification_results.tsv` | per variant and task: MCC, FPR, TPR, AUROC, precision@k |
+| `results/aggregated/regression_results.tsv` | per variant and task: Spearman, RMSLE, R² |
+| `results/aggregated/resource_summary.tsv` | runtime and peak memory per model |
+| `results/generalization/generalization_metrics.tsv` | holdout-2026 and training-overlap analysis |
+| `results/unit_comparison/` | µg/ml against µM comparison |
+
+`notebooks/supplementary_tables.ipynb` renders these as the supplementary
+tables and requires Jupyter.
+
+### Recomputing the metrics
+
+The pipeline derives those tables from the raw per-model predictions, which are
+archived on Zenodo rather than in Git because of their size. Recomputing the
+metrics from the archive avoids rerunning inference.
+
+```bash
+bash scripts/fetch_predictions.sh
+snakemake --profile profile/ --touch
+snakemake --profile profile/ --forcerun evaluate_task
+```
+
+`fetch_predictions.sh` downloads the archive (309 MB), verifies its SHA-256
+checksum and unpacks it into `results/inference/`. The `--touch` step is
+required because unpacked files carry archive timestamps, which Snakemake reads
+as stale and would otherwise answer by rerunning inference.
+
+The archive holds the unmodified output of each model's `inference.sh` in that
+model's own schema. Classifiers write `Probability_score`, regressors write
+`MIC` and `MIC_unit`. `workflow/scripts/evaluate.py` normalises the two at read
+time.
+
+> **Cached predictions:** <https://doi.org/10.5281/zenodo.22661234>
+> The DOI resolves to the most recent version.
+
+
+## I want to rerun the benchmark
+
+This reruns every model in `config/config.yaml` over all defined datasets and
+tasks, regenerating the result tables from scratch. It requires the model
+weights, a GPU and days of compute. The previous section covers reproducing the
+published figures and tables from the result tables already in the repository.
 
 ```bash
 snakemake --profile profile/
@@ -313,7 +404,7 @@ and **aggregate** (combine all metrics into summary tables). Completed steps are
 cached and not re-run.
 
 
-## I want to add my own model
+## I want to add my own model, dataset or task
 
 Each model in the benchmark lives in its own Git repository and is tracked as a
 **Git submodule** under `models/`. This keeps model code, weights, and version
@@ -349,6 +440,11 @@ need to handle out-of-range sequences.
 See [docs/adding_a_model.md](docs/adding_a_model.md) for a full walkthrough
 covering multi-variant models, validation reference data, and common pitfalls.
 
+To evaluate existing models on your own data instead, register a dataset and a
+task as described in [docs/adding_a_dataset.md](docs/adding_a_dataset.md). The
+benchmark datasets under `datasets/` and the task definitions in
+`config/config.yaml` can be reused independently of the models.
+
 
 ## Reference
 
@@ -362,16 +458,21 @@ covering multi-variant models, validation reference data, and common pitfalls.
 | AMPlify | (single) | classifier | LSTM, ATT | 1 to 199 | yes |
 | AMPred-MFA | (single) | classifier | LSTM, CNN, ATT | >= 3 | yes |
 | HydrAMP | HydrAMP-AMP, HydrAMP-MIC | classifier | LSTM | 1 to 25 | yes |
-| MolE | MolE-max | classifier | XGBoost | Unlimited | no |
-| sAMP-VGG16 | (single) | classifier | CNN | Unlimited | yes |
 | SenseXAMP | SenseXAMP-classifier | classifier | ESM, ATT | 6 to 25 | yes |
 | AMPredictor | (single) | classifier | GCN, ESM | 1 to 65 | yes |
-| APEX | APEX-Ecoli, APEX-Saureus, APEX-Kpneumoniae, APEX-min | regressor | ATT, RNN | 1 to 52 | yes |
+| APEX | APEX-Ecoli, APEX-Saureus, APEX-Kpneumoniae, APEX-Abaumannii, APEX-Paeruginosa, APEX-min | regressor | ATT, RNN | 1 to 52 | yes |
 | Deep-AMP | Deep-AMP-CNN-Gram+, Deep-AMP-CNN-Gram-, Deep-AMP-LSTM-Gram+, Deep-AMP-LSTM-Gram- | regressor | CNN, LSTM | 1 to 49 | yes |
 | MBC-Attention | (single) | regressor | CNN, ATT | 5 to 60 | yes |
 | SenseXAMP | SenseXAMP-Saureus, SenseXAMP-Ecoli | regressor | ESM, ATT | 6 to 25 | yes |
 
-Total: 9 classifiers, 4 regressors, 21 variants
+Total: 7 classifiers, 4 regressors, 21 variants
+
+**Surveyed but excluded.** These are not in `config/config.yaml`, so the pipeline and the web service both refuse to run them.
+
+| Model | Type | Framework | Reason for exclusion |
+|-------|------|-----------|----------------------|
+| MolE | classifier | XGBoost | classified all benchmark sequences as non-AMP |
+| sAMP-VGG16 | classifier | CNN | classified virtually all benchmark sequences as AMP |
 <!-- MODEL_TABLE_END -->
 
 
@@ -509,8 +610,8 @@ snakemake --profile slurm/ score \
 > `workflow/scripts/evaluate.py`. Every metric it computes is identical after
 > the upgrade.
 
-**Creating `slurm/config.yaml`.** The repository ships a template; copy and
-adapt it to your cluster before first use:
+**Creating `slurm/config.yaml`.** The repository provides a template. Copy and
+adapt it to your cluster before first use.
 
 ```yaml
 executor: slurm
