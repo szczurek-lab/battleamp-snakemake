@@ -6,6 +6,10 @@ models against a curated set of classification and regression tasks.
 Preprint: [BATTLE-AMP: Benchmarking Antimicrobial Peptide Predictors](https://www.biorxiv.org/content/10.64898/2026.06.19.733349v1),
 bioRxiv, 2026. doi:[10.64898/2026.06.19.733349](https://doi.org/10.64898/2026.06.19.733349)
 
+Web service: [battleamp.mimuw.edu.pl](https://battleamp.mimuw.edu.pl). Scores
+peptides against the benchmarked models in a browser, with no installation and
+no GPU.
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -31,18 +35,20 @@ bioRxiv, 2026. doi:[10.64898/2026.06.19.733349](https://doi.org/10.64898/2026.06
 
 ## Overview
 
-Reproducing the manuscript is independent of running the benchmark. It is the
-only task here that requires neither the model code nor a GPU.
+Reproducing the manuscript is independent of running the benchmark. Together
+with the hosted web service, it is one of the two tasks here that require
+neither the model code nor a GPU.
 
 | Task | Requirements |
 |---|---|
+| [Score peptides in a browser](https://battleamp.mimuw.edu.pl) | a web browser |
 | [Reproduce the manuscript figures and tables](#i-want-to-reproduce-the-manuscript-figures-and-tables) | Python and pip |
 | [Rerun the benchmark over all models](#i-want-to-rerun-the-benchmark) | conda, model weights, GPU, days of compute |
 | [Score a peptide library](#i-want-to-score-my-own-peptides) | conda, model weights, GPU |
 | [Add a model, dataset or task](#i-want-to-add-my-own-model-dataset-or-task) | conda, model weights, GPU |
 | [Call the pipeline from a web service](#web-service-api) | as for scoring a peptide library |
 
-Every task except the first requires the installation described below.
+Every task except the first two requires the installation described below.
 
 
 ## Installation
@@ -262,6 +268,10 @@ Three properties of this output:
 
 
 ## Web service API
+
+A hosted instance runs at [battleamp.mimuw.edu.pl](https://battleamp.mimuw.edu.pl)
+for users who do not want to install the pipeline. This section is for running
+your own instance instead.
 
 `--config output=` covers scoring. The `battleamp` package adds two functions a
 web front end needs before scoring starts.
